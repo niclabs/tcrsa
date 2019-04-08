@@ -13,41 +13,51 @@ type SignatureShare struct {
 	Id uint16
 }
 
-type SignatureShares []SignatureShare
+type SignatureShares []*SignatureShare
 
 func (sigShare SignatureShare) GetIndex() uint16 {
 	return sigShare.Id - 1
 }
 
+func (sigShares SignatureShares) LagrangeInterpolation(j, k uint16, delta *big.Int) (*big.Int, error) {
 
-func (sigShare SignatureShares) LagrangeInterpolation(j, k uint16, delta *big.Int) *big.Int {
-	out := big.NewInt(0).Set(delta)
+	if len(sigShares) < int(k) {
+		return new(big.Int), fmt.Errorf("insufficient number of signature shares. provided: %d, needed: %d", len(sigShares), k)
+	}
+
+	out := new(big.Int).Set(delta)
 	num := big.NewInt(1)
 	den := big.NewInt(1)
+
 
 	var i uint16
 
 	for i = 0; i < k; i++ {
-		id := sigShare[i].Id
+		id := sigShares[i].Id
 		if id != j {
-			num.Mul(num, big.NewInt(int64(id))) // num <-- num*j_
-			num.Mul(den, big.NewInt(int64(id - j)))  // den <-- den*(j_-j)
+			num.Mul(num, big.NewInt(int64(id)))   // num <-- num*j_
+			num.Mul(den, big.NewInt(int64(id-j))) // den <-- den*(j_-j)
 		}
 	}
 	out.Mul(out, num)
-	out.Quo(out, den)
+	out.Div(out, den)
 
-	return out
+	return out, nil
 }
 
-
 // Joins the signatures of the document provided.
-func (sigShare SignatureShares) JoinSignatures(document []byte, info *KeyMeta) (Signature, error) {
+func (sigShares SignatureShares) JoinSignatures(document []byte, info *KeyMeta) (Signature, error) {
+
 	if document == nil {
 		return []byte{}, fmt.Errorf("document is nil")
 	}
 	if info == nil {
 		return []byte{}, fmt.Errorf("key metainfo is nil")
+	}
+
+	k := info.K
+	if len(sigShares) < int(k) {
+		return []byte{}, fmt.Errorf("insufficient number of signature shares. provided: %d, needed: %d", len(sigShares), k)
 	}
 
 	x := new(big.Int)
@@ -66,10 +76,9 @@ func (sigShare SignatureShares) JoinSignatures(document []byte, info *KeyMeta) (
 	y := new(big.Int)
 
 	x.SetBytes(document)
-	n.SetBytes(info.PublicKey.N)
-	e.SetBytes(info.PublicKey.E)
+	n.Set(info.PublicKey.N)
+	e.SetUint64(uint64(info.PublicKey.E))
 	u.SetBytes(info.VerificationKey.U)
-
 
 	// x = doc if (doc | n) == 1 else doc * u^e
 
@@ -77,8 +86,7 @@ func (sigShare SignatureShares) JoinSignatures(document []byte, info *KeyMeta) (
 
 	if big.Jacobi(x, n) == -1 {
 		ue := new(big.Int).Exp(u, e, n)
-		x.Mul(x, ue)
-		x.Mod(x, n)
+		x.Mul(x, ue).Mod(x, n)
 		jacobied = true
 	}
 
@@ -88,19 +96,19 @@ func (sigShare SignatureShares) JoinSignatures(document []byte, info *KeyMeta) (
 	// Calculate w
 	w.SetInt64(1)
 
-	k := info.K
 	var i uint16
 	for i = 0; i < k; i++ {
-		id := sigShare[i].Id
-		si.SetBytes(sigShare[i].Xi)
-		lambdaK2 := sigShare.LagrangeInterpolation(id, k, delta)
+		id := sigShares[i].Id
+		lambdaK2, err := sigShares.LagrangeInterpolation(id, k, delta)
+		if err != nil {
+			return []byte{}, err
+		}
 		lambdaK2.Mul(lambdaK2, big.NewInt(2))
-
+		si.SetBytes(sigShares[i].Xi)
 		aux.Exp(si, lambdaK2, n)
 		w.Mul(w, aux)
+		w.Mod(w, n)
 	}
-
-	w.Mod(w, n)
 
 	aux.GCD(a, b, ePrime, e)
 	wa.Exp(w, a, n)
@@ -109,8 +117,7 @@ func (sigShare SignatureShares) JoinSignatures(document []byte, info *KeyMeta) (
 	y.Mul(wa, xb)
 
 	if jacobied {
-		invU := new(big.Int)
-		invU.ModInverse(u, n)
+		invU := new(big.Int).ModInverse(u, n)
 		y.Mul(y, invU)
 	}
 
@@ -120,13 +127,13 @@ func (sigShare SignatureShares) JoinSignatures(document []byte, info *KeyMeta) (
 
 }
 
-
 func (sigShare SignatureShare) VerifySignature(doc []byte, info *KeyMeta) bool {
 
 	x := new(big.Int)
 	xi := new(big.Int)
 	z := new(big.Int)
 	c := new(big.Int)
+	c2 := new(big.Int)
 	n := new(big.Int)
 	e := new(big.Int)
 	v := new(big.Int)
@@ -134,27 +141,27 @@ func (sigShare SignatureShare) VerifySignature(doc []byte, info *KeyMeta) bool {
 	vki := new(big.Int)
 	xTilde := new(big.Int)
 	xi2 := new(big.Int)
-	negC := new(big.Int)
 	vPrime := new(big.Int)
-	xiNeg2c := new(big.Int)
 	xPrime := new(big.Int)
+
+	negC := new(big.Int)
+	xiNeg2c := new(big.Int)
 	aux := new(big.Int)
 
 	x.SetBytes(doc)
+	n.Set(info.PublicKey.N)
+	e.SetUint64(uint64(info.PublicKey.E))
+	v.SetBytes(info.VerificationKey.V)
+	u.SetBytes(info.VerificationKey.U)
+	vki.SetBytes(info.VerificationKey.I[sigShare.GetIndex()])
+
 	xi.SetBytes(sigShare.Xi)
 	z.SetBytes(sigShare.Z)
 	c.SetBytes(sigShare.C)
-	n.SetBytes(info.PublicKey.N)
-	e.SetBytes(info.PublicKey.E)
-	v.SetBytes(info.VerificationKey.V)
-	u.SetBytes(info.VerificationKey.U)
-
-	vki.SetBytes(info.VerificationKey.I[sigShare.GetIndex()])
 
 	if big.Jacobi(x, n) == -1 {
 		ue := new(big.Int).Exp(u, e, n)
-		x.Mul(x, ue)
-		x.Mod(x, n)
+		x.Mul(x, ue).Mod(x, n)
 	}
 
 	// x~ = x^4 % n
@@ -172,6 +179,9 @@ func (sigShare SignatureShare) VerifySignature(doc []byte, info *KeyMeta) bool {
 	// x' = x~^z * x_i^(-2c)
 	aux.Mul(negC, big.NewInt(2))
 	xiNeg2c.Exp(xi, aux, n)
+
+	aux.Exp(xTilde, z, n)
+	xPrime.Mul(aux, xiNeg2c)
 	xPrime.Mod(xPrime, n)
 
 	// Hashing all the values
@@ -186,9 +196,9 @@ func (sigShare SignatureShare) VerifySignature(doc []byte, info *KeyMeta) bool {
 
 	hash := sha.Sum(nil)
 
-	hashBig := big.NewInt(0).SetBytes(hash)
-	hashBig.Mod(hashBig, n)
+	c2.SetBytes(hash)
+	c2.Mod(c2, n)
 
-	return hashBig.Cmp(c) == 0
+	return c2.Cmp(c) == 0
 
 }

@@ -12,25 +12,52 @@ const c = 25
 // A random function which generates a random big number, using crypto/rand
 // crypto secure Golang library.
 func RandomDev(bitLen int) (*big.Int, error) {
+	randNum := big.NewInt(0)
 	if bitLen <= 0 {
-		return big.NewInt(0), fmt.Errorf("bitlen should be greater than 0, but it is %d", bitLen)
+		return randNum, fmt.Errorf("bitlen should be greater than 0, but it is %d", bitLen)
 	}
-
-	byteSize := bitLen / 8
-
-	rawRand := make([]byte, byteSize)
-	_, err := rand.Read(rawRand)
-	if err != nil {
-		return big.NewInt(0), err
+	byteLen := bitLen / 8
+	byteRem := bitLen % 8
+	if byteRem != 0 {
+		byteLen++
 	}
+	rawRand := make([]byte, byteLen)
 
-	return big.NewInt(0).SetBytes(rawRand), nil
+	for found := false; !found; found = randNum.BitLen() == bitLen {
+		_, err := rand.Read(rawRand)
+		if err != nil {
+			return randNum, err
+		}
+		randNum.SetBytes(rawRand)
+		// set MSBs to 0 to get a bitLen equal to bitLen param.
+		var bit int
+		for bit = randNum.BitLen() - 1; bit >= bitLen; bit-- {
+			randNum.SetBit(randNum, bit, 0)
+		}
+		// Set bit number (bitLen-1) to 1
+		randNum.SetBit(randNum, bit, 1)
+	}
+	return randNum, nil
+}
+
+// Returns the next prime number based on a specific number, checking for its primality
+// using ProbablyPrime function.
+
+func nextPrime(num *big.Int, n int) *big.Int {
+
+	// Possible prime should be odd
+	num.SetBit(num,0, 1)
+	for ;!num.ProbablyPrime(c);  {
+		// I add two to the number to obtain another odd number
+		num.Add(num, big.NewInt(2))
+	}
+	return num
 }
 
 // Returns a random prime of length bitLen, using a given random function randFn.
 func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, error) {
 
-	var randPrime *big.Int
+	num := new(big.Int)
 	var err error
 
 	if randFn == nil {
@@ -40,20 +67,28 @@ func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, erro
 		return big.NewInt(0), fmt.Errorf("bit length must be positive")
 	}
 
-	size := bitLen
-
-	for ok := true; ok; ok = size < bitLen {
-		randPrime, err = randFn(bitLen)
+	// Obtain a random number of length bitLen
+	for true {
+		num, err = randFn(bitLen)
 		if err != nil {
-			return big.NewInt(0), err
+			return num, err
 		}
-		size = randPrime.BitLen()
+		num = nextPrime(num, c)
+
+		// my next random number is too high
+		if num.BitLen() == bitLen {
+			break
+		}
 	}
 
-	if randPrime.BitLen() > bitLen || !randPrime.ProbablyPrime(c) {
+	if num.BitLen() != bitLen {
+		return big.NewInt(0), fmt.Errorf("random number returned should have length %d, but its length is %d", bitLen, num.BitLen())
+	}
+
+	if !num.ProbablyPrime(c) {
 		return big.NewInt(0), fmt.Errorf("random number returned is not prime")
 	}
-	return randPrime, nil
+	return num, nil
 }
 
 // Fast Safe Prime Generation.
@@ -62,30 +97,27 @@ func GenerateSafePrime(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int
 	if randFn == nil {
 		return big.NewInt(0), fmt.Errorf("random function cannot be nil")
 	}
-	p, err := randomPrime(bitLen, randFn)
 
-	if err != nil {
-		return big.NewInt(0), err
-	}
+	q := new(big.Int)
+	r := new(big.Int)
 
-	var ONE = big.NewInt(1)
-	var TWO = big.NewInt(2)
 
 	for true {
-		q := new(big.Int)
-		r := new(big.Int)
+		p, err := randomPrime(bitLen, randFn)
+		if err != nil {
+			return big.NewInt(0), err
+		}
+		// q is the first candidate = (p - 1) / 2
+		q.Quo(big.NewInt(0).Sub(p, big.NewInt(1)), big.NewInt(2))
 
-		// q is the first candidate = (p-1) / 2
-		q.Quo(big.NewInt(0).Sub(p, ONE), TWO)
-
-		// r is the second candidate = 2*(p+1)
-		r.Mul(big.NewInt(0).Add(p, ONE), TWO)
+		// r is the second candidate = (p + 1) * 2
+		r.Mul(big.NewInt(0).Add(p, big.NewInt(1)), big.NewInt(2))
 
 		if r.ProbablyPrime(c) {
 			return r, nil
 		}
 		if q.ProbablyPrime(c) {
-			return q, nil
+			return p, nil
 		}
 	}
 
