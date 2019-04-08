@@ -36,7 +36,7 @@ func NewKeyMeta(k, l uint16) (*KeyMeta, error) {
 	}, nil
 }
 
-func GenerateKeys(bitSize int, k, l uint16, pubE []byte) (*KeyMeta, error) {
+func GenerateKeys(bitSize int, k, l uint64, pubE []byte) (*KeyMeta, error) {
 	if bitSize < MinBitsize || bitSize > MaxBitsize {
 		return &KeyMeta{}, fmt.Errorf("bit size should be between %d and %d, but it is %d", MinBitsize, MaxBitsize, bitSize)
 	}
@@ -103,11 +103,7 @@ func GenerateKeys(bitSize int, k, l uint16, pubE []byte) (*KeyMeta, error) {
 	n.Mul(p, q)
 	m.Mul(pr, qr)
 
-	nEncoded, err := n.GobEncode()
-	if err != nil {
-		return &KeyMeta{}, err
-	}
-	keyMeta.PublicKey.N = nEncoded
+	keyMeta.PublicKey.N = n.Bytes()
 
 	ll.SetUint64(uint64(l))
 
@@ -123,11 +119,7 @@ func GenerateKeys(bitSize int, k, l uint16, pubE []byte) (*KeyMeta, error) {
 		e.SetUint64(F4) // l is always less than 65537 (l is an uint16_t)
 	}
 
-	exp, err := e.GobEncode()
-	if err != nil {
-		return &KeyMeta{}, err
-	}
-	keyMeta.PublicKey.E = exp
+	keyMeta.PublicKey.E = e.Bytes()
 
 	// d = e^{-1} mod m
 	d.ModInverse(e, m)
@@ -138,15 +130,11 @@ func GenerateKeys(bitSize int, k, l uint16, pubE []byte) (*KeyMeta, error) {
 		if err != nil {
 			return &KeyMeta{}, nil
 		}
-		divisor.GCD(r, n, nil, nil)
+		divisor.GCD(nil, nil, r, n)
 	}
 	vkv.Exp(r, TWO, n)
 
-	vkVEncoded, err := vkv.GobEncode()
-	if err != nil {
-		return &KeyMeta{}, err
-	}
-	keyMeta.VerificationKey.V = vkVEncoded
+	keyMeta.VerificationKey.V = vkv.Bytes()
 
 	// generate u
 	for ok := true; ok; ok = big.Jacobi(vku, n) != -1 {
@@ -157,11 +145,7 @@ func GenerateKeys(bitSize int, k, l uint16, pubE []byte) (*KeyMeta, error) {
 		vku.Mod(vku, n)
 	}
 
-	vkUEncoded, err := vku.GobEncode()
-	if err != nil {
-		return &KeyMeta{}, err
-	}
-	keyMeta.VerificationKey.U = vkUEncoded
+	keyMeta.VerificationKey.U = vku.Bytes()
 
 	// Delta is fact(l)
 	deltaInv.MulRange(1, int64(l))
@@ -182,20 +166,12 @@ func GenerateKeys(bitSize int, k, l uint16, pubE []byte) (*KeyMeta, error) {
 		si := poly.Eval(deltaInv)
 		si.Mul(si, deltaInv)
 		si.Mod(si, m)
-		keyShare.N = nEncoded
+		keyShare.N = n.Bytes()
 
-		siEncoded, err := si.GobEncode()
-		if err != nil {
-			return &KeyMeta{}, err
-		}
-		keyShare.Si = siEncoded
+		keyShare.Si = si.Bytes()
 		vki.Exp(vkv, si, n)
 
-		vkiEncoded, err := vki.GobEncode()
-		if err != nil {
-			return &KeyMeta{}, err
-		}
-		keyMeta.VerificationKey.I[index] = vkiEncoded
+		keyMeta.VerificationKey.I[index] = vki.Bytes()
 	}
 	return keyMeta, nil
 }
