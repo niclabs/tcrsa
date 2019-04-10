@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto"
-	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"flag"
@@ -60,26 +59,24 @@ func main() {
 
 	var i uint16
 	for i = 0; i < l; i++ {
-		log.Printf("signing with node %d of %d", sigs[i].GetIndex(), l)
+		log.Printf("signing with node %d of %d", keyShares[i].Id, l)
 		sigs[i], err = keyShares[i].SignNode(docPKCS1, keyMeta)
 		if err != nil {
 			panic(fmt.Sprintf("%v", err))
 		}
-		log.Printf("verifying with node %d of %d", sigs[i].GetIndex(), l)
-		if !sigs[i].VerifySignature(docPKCS1, keyMeta) {
+		log.Printf("verifying with node %d of %d", sigs[i].Id, l)
+		if !sigs[i].Verify(docPKCS1, keyMeta) {
 			panic("signature doesn't match")
 		}
 	}
 	log.Printf("joining signatures")
-	signature, err := sigs.JoinSignatures(docPKCS1, keyMeta)
+	signature, err := sigs.Join(docPKCS1, keyMeta)
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
-	sigB64 := base64.StdEncoding.EncodeToString(signature)
-	log.Printf("Signature is %s", sigB64)
 
 	log.Printf("verifying signature")
-	if err := rsa.VerifyPKCS1v15(keyMeta.PublicKey, crypto.SHA256, docHash[:], signature); err != nil {
+	if !signature.Verify(docPKCS1, keyMeta) {
 		panic(fmt.Sprintf("%v", err))
 	}
 	log.Printf("done!")

@@ -2,8 +2,11 @@ package main
 
 import (
 	"crypto"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
+	"math/big"
 )
 
 // This section is copied almost literally from the golang crypto/rsa source code
@@ -72,4 +75,28 @@ func PrepareDocumentHash(privateKeySize int, hash crypto.Hash, hashed []byte) ([
 	copy(em[k-tLen:k-hashLen], prefix)
 	copy(em[k-hashLen:k], hashed)
 	return em, nil
+}
+
+func (s Signature) Verify(docPKCS1 []byte, info *KeyMeta) bool {
+	c := new(big.Int)
+	x := new(big.Int)
+	e := new(big.Int)
+	n := new(big.Int)
+
+	x.SetBytes(docPKCS1)
+	c.SetBytes(s)
+	e.SetUint64(uint64(info.PublicKey.E))
+	n.Set(info.PublicKey.N)
+
+	newX := new(big.Int).Exp(c, e, n)
+	xSig := Signature(newX.Bytes())
+
+	docB64 := base64.StdEncoding.EncodeToString(docPKCS1)
+	log.Printf("Doc is %s", docB64)
+
+	sigB64 := base64.StdEncoding.EncodeToString(xSig)
+	log.Printf("Decrypted Sig is %s", sigB64)
+
+	return newX.Cmp(x) == 0
+
 }
