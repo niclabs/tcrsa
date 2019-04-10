@@ -37,7 +37,7 @@ func main() {
 	k := uint16(kLong)
 	l := uint16(lLong)
 	log.Printf("Generating %d keys for %d-threshold signing", l, k)
-	keyShares, keyMeta, err := GenerateKeys(s, uint16(k), uint16(l), 0)
+	keyShares, keyMeta, err := GenerateKeys(s, uint16(k), uint16(l), &KeyMetaArgs{})
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}

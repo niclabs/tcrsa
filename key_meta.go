@@ -13,31 +13,21 @@ type KeyMeta struct {
 	VerificationKey *VerificationKey
 }
 
+
+// Key Meta Args. Define the initialization values for key generation.
+// Use only for testing! (Or am I being too naive believing that this is not going
+// to be used in production?)
+type KeyMetaArgs struct {
+	E int
+}
+
 const MinBitsize = 1 << 9
 const MaxBitsize = 1 << 13
 
 // Fermat fourth number
 const F4 = 65537
 
-func NewKeyMeta(k, l uint16) (*KeyMeta, error) {
-	if l <= 1 {
-		return &KeyMeta{}, fmt.Errorf("l should be greater than 1, but it is %d", l)
-	}
-	if k <= 0 {
-		return &KeyMeta{}, fmt.Errorf("k should be greater than 0, but it is %d", k)
-	}
-	if k < (l/2+1) || k > l {
-		return &KeyMeta{}, fmt.Errorf("k should be between the %d and %d, but it is %d", (l/2)+1, l, k)
-	}
-	return &KeyMeta{
-		PublicKey:       &rsa.PublicKey{},
-		K:               k,
-		L:               l,
-		VerificationKey: NewVerificationKey(l),
-	}, nil
-}
-
-func GenerateKeys(bitSize int, k, l uint16, pubE int) (KeyShares, *KeyMeta, error) {
+func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (KeyShares, *KeyMeta, error) {
 	if bitSize < MinBitsize || bitSize > MaxBitsize {
 		return make(KeyShares, 0), &KeyMeta{}, fmt.Errorf("bit size should be between %d and %d, but it is %d", MinBitsize, MaxBitsize, bitSize)
 	}
@@ -51,10 +41,11 @@ func GenerateKeys(bitSize int, k, l uint16, pubE int) (KeyShares, *KeyMeta, erro
 		return make(KeyShares, 0), &KeyMeta{}, fmt.Errorf("k should be between the %d and %d, but it is %d", (l/2)+1, l, k)
 	}
 
-	keyMeta, err := NewKeyMeta(k, l)
-
-	if err != nil {
-		return make(KeyShares, 0), &KeyMeta{}, err
+	keyMeta := &KeyMeta{
+		PublicKey:       &rsa.PublicKey{},
+		K:               k,
+		L:               l,
+		VerificationKey: NewVerificationKey(l),
 	}
 
 	keyShares, err := NewKeyShares(keyMeta)
@@ -69,7 +60,7 @@ func GenerateKeys(bitSize int, k, l uint16, pubE int) (KeyShares, *KeyMeta, erro
 	q := new(big.Int)
 	d := new(big.Int)
 	e := new(big.Int)
-	ll := new(big.Int)
+	lBig := new(big.Int)
 	m := new(big.Int)
 	n := new(big.Int)
 	deltaInv := new(big.Int)
@@ -79,22 +70,13 @@ func GenerateKeys(bitSize int, k, l uint16, pubE int) (KeyShares, *KeyMeta, erro
 	vku := new(big.Int)
 	vki := new(big.Int)
 
-	// Common use big numbers
-
-	if p, err = GenerateSafePrime(pPrimeSize, RandomDev); err != nil {
-		return make(KeyShares, 0), &KeyMeta{}, err
-	}
-	if q, err = GenerateSafePrime(qPrimeSize, RandomDev); err != nil {
+	if p, pr, err = GenerateSafePrimes(pPrimeSize, RandomDev); err != nil {
 		return make(KeyShares, 0), &KeyMeta{}, err
 	}
 
-	// p' = (p - 1) / 2
-	pr.Sub(p, big.NewInt(1))
-	pr.Div(pr, big.NewInt(2))
-
-	// q' = (q - 1) / 2
-	qr.Sub(q, big.NewInt(1))
-	qr.Div(qr, big.NewInt(2))
+	if q, qr, err = GenerateSafePrimes(qPrimeSize, RandomDev); err != nil {
+		return make(KeyShares, 0), &KeyMeta{}, err
+	}
 
 	// n = p * q and m = p' * q'
 
@@ -103,14 +85,14 @@ func GenerateKeys(bitSize int, k, l uint16, pubE int) (KeyShares, *KeyMeta, erro
 
 	keyMeta.PublicKey.N = n
 
-	ll.SetUint64(uint64(l))
+	lBig.SetUint64(uint64(l))
 
 	eSet := false
 
-	if pubE <= 0 {
-		keyMeta.PublicKey.E = pubE
-		e := big.NewInt(int64(pubE))
-		if e.ProbablyPrime(c) && ll.Cmp(e) < 0 {
+	if args.E != 0 {
+		keyMeta.PublicKey.E = args.E
+		e := big.NewInt(int64(args.E))
+		if e.ProbablyPrime(c) && lBig.Cmp(e) < 0 {
 			eSet = true
 		}
 	}
