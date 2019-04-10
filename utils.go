@@ -45,18 +45,6 @@ func RandomDev(bitLen int) (*big.Int, error) {
 	return randNum, nil
 }
 
-// Returns the next prime number based on a specific number, checking for its primality
-// using ProbablyPrime function.
-func nextPrime(num *big.Int, n int) *big.Int {
-	// Possible prime should be odd
-	num.SetBit(num, 0, 1)
-	for !num.ProbablyPrime(n) {
-		// I add two to the number to obtain another odd number
-		num.Add(num, big.NewInt(2))
-	}
-	return num
-}
-
 // Returns a random prime of length bitLen, using a given random function randFn.
 func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, error) {
 	num := new(big.Int)
@@ -88,33 +76,33 @@ func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, erro
 	return num, nil
 }
 
+// Returns the next prime number based on a specific number, checking for its primality
+// using ProbablyPrime function.
+func nextPrime(num *big.Int, n int) *big.Int {
+	// Possible prime should be odd
+	num.SetBit(num, 0, 1)
+	for !num.ProbablyPrime(n) {
+		// I add two to the number to obtain another odd number
+		num.Add(num, big.NewInt(2))
+	}
+	return num
+}
+
 // Fast Safe Prime Generation. Generates two primes p and q, in a way that q
 // is equal to (p-1)/2.
-// If it finds a prime, it tries the next probably safe prime or the previous one.
-// Because of that, prime could be a bit bigger than the value that was asked, but
-// it can not be smaller.
 func GenerateSafePrimes(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, *big.Int, error) {
 	if randFn == nil {
 		return big.NewInt(0), big.NewInt(0), fmt.Errorf("random function cannot be nil")
 	}
 
 	q := new(big.Int)
-	r := new(big.Int)
 
 	for true {
 		p, err := randomPrime(bitLen, randFn)
 		if err != nil {
 			return big.NewInt(0), big.NewInt(0), err
 		}
-		// q is the first candidate = (p - 1) / 2
 		q.Sub(p, big.NewInt(1)).Div(q, big.NewInt(2))
-
-		// r is the second candidate = 2 * p + 1
-		r.Mul(p, big.NewInt(2)).Add(r, big.NewInt(1))
-
-		if r.ProbablyPrime(c) {
-			return r, p, nil
-		}
 		if q.ProbablyPrime(c) {
 			return p, q, nil
 		}

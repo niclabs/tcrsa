@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
+	"log"
 	"math/big"
 )
 
@@ -150,7 +151,7 @@ func (sigShares SignatureShares) Join(document []byte, info *KeyMeta) (Signature
 	}
 
 	delta.MulRange(1, int64(info.L))
-	ePrime.SetInt64(4).Mul(ePrime, delta).Mul(ePrime,delta)
+	ePrime.SetInt64(4)
 
 	// Calculate w
 	w.SetInt64(1)
@@ -177,8 +178,11 @@ func (sigShares SignatureShares) Join(document []byte, info *KeyMeta) (Signature
 	y.Mul(wa, xb)
 
 	if jacobied {
+		log.Printf("jacobied!\n")
 		invU := new(big.Int).ModInverse(u, n)
 		y.Mul(y, invU)
+	} else {
+		log.Printf("not jacobied!\n")
 	}
 
 	y.Mod(y, n)
@@ -190,10 +194,11 @@ func (sigShares SignatureShares) Join(document []byte, info *KeyMeta) (Signature
 func (sigShares SignatureShares) LagrangeInterpolation(j, k int64, delta *big.Int) (*big.Int, error) {
 
 	if int64(len(sigShares)) < k {
-		return new(big.Int), fmt.Errorf("insufficient number of signature shares. provided: %d, needed: %d", len(sigShares), k)
+		return new(big.Int), fmt.Errorf("insuficient number of signature shares. provided: %d, needed: %d", len(sigShares), k)
 	}
+	out := new(big.Int)
 
-	out := new(big.Int).Set(delta)
+	out.Set(delta)
 	num := big.NewInt(1)
 	den := big.NewInt(1)
 
@@ -206,7 +211,7 @@ func (sigShares SignatureShares) LagrangeInterpolation(j, k int64, delta *big.In
 		}
 	}
 	out.Mul(out, num)
-	out.Quo(out, den)
+	out.Div(out, den)
 
 	return out, nil
 }

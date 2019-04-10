@@ -77,6 +77,7 @@ func PrepareDocumentHash(privateKeySize int, hash crypto.Hash, hashed []byte) ([
 	return em, nil
 }
 
+// Verifies a document signature
 func (s Signature) Verify(docPKCS1 []byte, info *KeyMeta) bool {
 	c := new(big.Int)
 	x := new(big.Int)
@@ -89,12 +90,12 @@ func (s Signature) Verify(docPKCS1 []byte, info *KeyMeta) bool {
 	n.Set(info.PublicKey.N)
 
 	newX := new(big.Int).Exp(c, e, n)
-	xSig := Signature(newX.Bytes())
+	resDocPKCS1 := Signature(newX.Bytes())
 
 	docB64 := base64.StdEncoding.EncodeToString(docPKCS1)
-	log.Printf("Doc is %s", docB64)
+	log.Printf("Doc Hash is %s", docB64)
 
-	sigB64 := base64.StdEncoding.EncodeToString(xSig)
+	sigB64 := base64.StdEncoding.EncodeToString(resDocPKCS1)
 	log.Printf("Decrypted Sig is %s", sigB64)
 
 	return newX.Cmp(x) == 0

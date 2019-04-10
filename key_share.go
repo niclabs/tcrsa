@@ -1,8 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
-	"fmt"
+	"encoding/base64"
 	"math/big"
 )
 
@@ -16,23 +17,24 @@ const HashLen = 32
 
 type KeyShares []*KeyShare
 
-func NewKeyShares(keyMeta *KeyMeta) (KeyShares, error) {
-	if keyMeta.L <= 0 {
-		return KeyShares{}, fmt.Errorf("l in KeyMeta should be greater than 0, but it is %d", keyMeta.L)
-	}
-	keyShares := make(KeyShares, keyMeta.L)
-	var i uint16
-	for i = 0; i < keyMeta.L; i++ {
-		keyShares[i] = &KeyShare{}
-	}
-	return keyShares, nil
+
+func (share KeyShare) GetIndex() uint16 {
+	return share.Id - 1
 }
 
-func (keyShare KeyShare) GetIndex() uint16 {
-	return keyShare.Id - 1
+// Compares two keyshare Si Values
+func (share KeyShare) Equals(keyShare2 *KeyShare) bool {
+	if keyShare2 == nil {
+		return false
+	}
+	return bytes.Compare(share.Si, keyShare2.Si) == 0
 }
 
-func (keyShare KeyShare) SignNode(doc []byte, info *KeyMeta) (*SignatureShare, error) {
+func (share KeyShare) toBase64() string {
+	return base64.StdEncoding.EncodeToString(share.Si)
+}
+
+func (share KeyShare) SignNode(doc []byte, info *KeyMeta) (*SignatureShare, error) {
 
 	x := new(big.Int)
 	xi := new(big.Int)
@@ -55,9 +57,9 @@ func (keyShare KeyShare) SignNode(doc []byte, info *KeyMeta) (*SignatureShare, e
 	e.SetUint64(uint64(info.PublicKey.E))
 	v.SetBytes(info.VerificationKey.V)
 	u.SetBytes(info.VerificationKey.U)
-	vki.SetBytes(info.VerificationKey.I[keyShare.GetIndex()])
+	vki.SetBytes(info.VerificationKey.I[share.GetIndex()])
 
-	si.SetBytes(keyShare.Si)
+	si.SetBytes(share.Si)
 
 	// x = doc if (doc | n) == 1 else doc * u^e
 	if big.Jacobi(x, n) == -1 {
@@ -65,13 +67,13 @@ func (keyShare KeyShare) SignNode(doc []byte, info *KeyMeta) (*SignatureShare, e
 		x.Mul(x, ue).Mod(x, n)
 	}
 
-	// xi = x^(2*keyShare) mod n
+	// xi = x^(2*share) mod n
 	xi.Mul(si, big.NewInt(2)).Exp(x, xi, n)
 
 	// x~ = x^4 % n
 	xTilde.Exp(x, big.NewInt(4), n)
 
-	// xi_2 = xi^2 % n
+	// xi2 = xi^2 % n
 	xi2.Exp(xi, big.NewInt(2), n)
 
 
@@ -106,7 +108,7 @@ func (keyShare KeyShare) SignNode(doc []byte, info *KeyMeta) (*SignatureShare, e
 	z.Add(z, r)
 
 	return &SignatureShare{
-		Id: keyShare.Id,
+		Id: share.Id,
 		Xi: xi.Bytes(),
 		C:  c.Bytes(),
 		Z:  z.Bytes(),
