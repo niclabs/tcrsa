@@ -145,9 +145,12 @@ func (sigShares SignatureShares) Join(document []byte, info *KeyMeta) (Signature
 	jacobied := false
 
 	if big.Jacobi(x, n) == -1 {
+		fmt.Printf("jacobied!\n")
 		ue := new(big.Int).Exp(u, e, n)
 		x.Mul(x, ue).Mod(x, n)
 		jacobied = true
+	} else {
+		log.Printf("not jacobied!\n")
 	}
 
 	delta.MulRange(1, int64(info.L))
@@ -158,6 +161,7 @@ func (sigShares SignatureShares) Join(document []byte, info *KeyMeta) (Signature
 
 	var i uint16
 	for i = 0; i < k; i++ {
+		log.Printf("lagrange %d", i)
 		id := int64(sigShares[i].Id)
 		lambdaK2, err := sigShares.LagrangeInterpolation(id, int64(k), delta)
 		if err != nil {
@@ -167,22 +171,39 @@ func (sigShares SignatureShares) Join(document []byte, info *KeyMeta) (Signature
 		si.SetBytes(sigShares[i].Xi)
 		aux.Exp(si, lambdaK2, n)
 		w.Mul(w, aux)
+		log.Printf("si is %s", si)
+		log.Printf("lambdak2 is %s", lambdaK2)
+		log.Printf("aux is %s", aux)
+		log.Printf("w is %s", w)
 	}
 
-	w.Mod(w, n)
+	mod := new(big.Int)
+	div := new(big.Int)
+
+	div.DivMod(w, n, mod)
+
+	w.Set(mod)
+
+	//log.Printf("div is %s", div)
+	//log.Printf("mod is %s", mod)
+
 
 	aux.GCD(a, b, ePrime, e)
 	wa.Exp(w, a, n)
 	xb.Exp(x, b, n)
 
+	log.Printf("w is %s", w)
+	log.Printf("a is %s", a)
+	log.Printf("n is %s", n)
+	log.Printf("x is %s", x)
+	log.Printf("b is %s", b)
+
 	y.Mul(wa, xb)
+	log.Printf("y is %s", y)
 
 	if jacobied {
-		log.Printf("jacobied!\n")
 		invU := new(big.Int).ModInverse(u, n)
 		y.Mul(y, invU)
-	} else {
-		log.Printf("not jacobied!\n")
 	}
 
 	y.Mod(y, n)

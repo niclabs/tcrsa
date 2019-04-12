@@ -54,8 +54,8 @@ func pkcs1v15HashInfo(hash crypto.Hash, inLen int) (hashLen int, prefix []byte, 
 
 // Copied from SignPKCS15 function from crypto/rsa on https://golang.org/pkg/crypto/rsa/
 // Receives a document hash and prepares it for its signing.
-func PrepareDocumentHash(privateKeySize int, hash crypto.Hash, hashed []byte) ([]byte, error) {
-	hashLen, prefix, err := pkcs1v15HashInfo(hash, len(hashed))
+func PrepareDocumentHash(privateKeySize int, hashType crypto.Hash, digest []byte) ([]byte, error) {
+	hashLen, prefix, err := pkcs1v15HashInfo(hashType, len(digest))
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,13 @@ func PrepareDocumentHash(privateKeySize int, hash crypto.Hash, hashed []byte) ([
 		em[i] = 0xff
 	}
 	copy(em[k-tLen:k-hashLen], prefix)
-	copy(em[k-hashLen:k], hashed)
+	copy(em[k-hashLen:k], digest)
+
+	log.Printf("key_len: %d", privateKeySize)
+	log.Printf("digest_len: %d", len(digest))
+	log.Printf("prefix_len: %d", len(prefix))
+	log.Printf("padding_len: %d", k - tLen)
+	log.Printf("total_len: %d", len(em))
 	return em, nil
 }
 
@@ -93,7 +99,10 @@ func (s Signature) Verify(docPKCS1 []byte, info *KeyMeta) bool {
 	resDocPKCS1 := Signature(newX.Bytes())
 
 	docB64 := base64.StdEncoding.EncodeToString(docPKCS1)
-	log.Printf("Doc Hash is %s", docB64)
+	log.Printf("Doc is %s", docB64)
+
+	originalSigB64 := base64.StdEncoding.EncodeToString(s)
+	log.Printf("Original Sig is %s", originalSigB64)
 
 	sigB64 := base64.StdEncoding.EncodeToString(resDocPKCS1)
 	log.Printf("Decrypted Sig is %s", sigB64)

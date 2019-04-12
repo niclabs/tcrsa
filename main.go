@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto"
-	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"flag"
@@ -17,8 +16,8 @@ var s int
 var m string
 var fixedKey bool
 
-const P = "+KYJ3Fn4XADnuZBgSUduw0RDgdlnTH4eb905ejItregpQp+/V28l3EXgD3A2Lz6Mm+Cg+JnoGIB0dEywh/6GGw=="
-const Q = "TOUMXjftMP9kvE5ozJhSJQ0Lapn5QdqSCmPH38VseOq6QwK5dbQGdgcWFhg9J89NMBSry75n/okTQt+owG6xXw=="
+const P = "132TWiSEqNNnfiF5AZjS2R8SwUszMGnHSKTYAtWckuc="
+const Q = "f8PooDmAlOUFf3BdAxPCOy8p5ArfLHs6ODFWTFnpUxM="
 
 func init() {
 	flag.Uint64Var(&kLong, "k", 3, "Threshold size")
@@ -99,11 +98,9 @@ func main() {
 		panic(fmt.Sprintf("%v", err))
 	}
 
-	sigB64 := base64.StdEncoding.EncodeToString(signature)
-	log.Printf("The document signature (bitlen %d) is %s", len(signature), sigB64)
-
 	log.Printf("verifying signature")
-	if err := rsa.VerifyPKCS1v15(keyMeta.PublicKey, crypto.SHA256, docHash[:], signature); err != nil {
+	// rsa.VerifyPKCS1v15(keyMeta.PublicKey, crypto.SHA256, docHash[:], signature)
+	if signature.Verify(docPKCS1, keyMeta) {
 		panic(fmt.Sprintf("%v", err))
 	}
 	log.Printf("done!")

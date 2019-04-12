@@ -123,8 +123,7 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 	d.ModInverse(e, m)
 
 	// generate v
-	one := big.NewInt(1)
-	for divisor.Cmp(one) != 0 {
+	for divisor.Cmp(big.NewInt(1)) != 0 {
 		r, err = RandomDev(n.BitLen())
 		if err != nil {
 			return make(KeyShares, 0), &KeyMeta{}, nil
