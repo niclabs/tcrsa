@@ -53,16 +53,16 @@ func main() {
 	docB64 := base64.StdEncoding.EncodeToString(docPKCS1)
 	log.Printf("Document: %s", docB64)
 
-	sigShares := make(SignatureShares, l)
+	sigShares := make(SigShareList, l)
 
 	var i uint16
 	for i = 0; i < l; i++ {
-		sigShares[i], err = keyShares[i].SignNode(docPKCS1, keyMeta)
+		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, keyMeta)
 		if err != nil {
 			panic(fmt.Sprintf("%v", err))
 		}
-		if !sigShares[i].Verify(docPKCS1, keyMeta) {
-			panic("signature doesn't match")
+		if err := sigShares[i].Verify(docPKCS1, keyMeta); err != nil {
+			panic(fmt.Sprintf("%v", err))
 		}
 	}
 	signature, err := sigShares.Join(docPKCS1, keyMeta)

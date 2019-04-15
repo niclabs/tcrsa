@@ -11,7 +11,7 @@ const c = 25
 
 // A random function which generates a random big number, using crypto/rand
 // crypto secure Golang library.
-func RandomDev(bitLen int) (*big.Int, error) {
+func randomDev(bitLen int) (*big.Int, error) {
 	randNum := big.NewInt(0)
 	if bitLen <= 0 {
 		return randNum, fmt.Errorf("bitlen should be greater than 0, but it is %d", bitLen)
@@ -89,13 +89,14 @@ func nextPrime(num *big.Int, n int) *big.Int {
 }
 
 // Fast Safe Prime Generation. Generates two primes p and q, in a way that q
-// is equal to (p-1)/2.
-func GenerateSafePrimes(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, *big.Int, error) {
+// is equal to (p-1)/2. The greatest prime bit length is at least bitLen bits.
+func generateSafePrimes(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, *big.Int, error) {
 	if randFn == nil {
 		return big.NewInt(0), big.NewInt(0), fmt.Errorf("random function cannot be nil")
 	}
 
 	q := new(big.Int)
+	r := new(big.Int)
 
 	for true {
 		p, err := randomPrime(bitLen, randFn)
@@ -103,8 +104,13 @@ func GenerateSafePrimes(bitLen int, randFn func(int) (*big.Int, error)) (*big.In
 			return big.NewInt(0), big.NewInt(0), err
 		}
 		q.Sub(p, big.NewInt(1)).Div(q, big.NewInt(2))
+		r.Mul(p, big.NewInt(2)).Add(r, big.NewInt(1))
+
 		if q.ProbablyPrime(c) {
 			return p, q, nil
+		}
+		if r.ProbablyPrime(c) {
+			return r, p, nil
 		}
 	}
 	return big.NewInt(0), big.NewInt(0), fmt.Errorf("should never be here")

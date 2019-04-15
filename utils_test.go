@@ -13,11 +13,11 @@ const utilsTestC = 25
 // Tests that two consecutive outputs from random dev are different.
 // TODO: Test how much different are the numbers generated
 func TestRandomDev_different(t *testing.T) {
-	rand1, err := RandomDev(utilsTestBitlen)
+	rand1, err := randomDev(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("first random number generation failed: %v", err)
 	}
-	rand2, err := RandomDev(utilsTestBitlen)
+	rand2, err := randomDev(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("second random number generation failed: %v", err)
 	}
@@ -28,7 +28,7 @@ func TestRandomDev_different(t *testing.T) {
 
 // Tests that the bit size of the output of a random dev function is the desired.
 func TestRandomDev_bitSize(t *testing.T) {
-	rand1, err := RandomDev(utilsTestBitlen)
+	rand1, err := randomDev(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("first random number generation failed: %v", err)
 	}
@@ -40,11 +40,11 @@ func TestRandomDev_bitSize(t *testing.T) {
 // Tests that two consecutive random primes are different.
 // TODO: Test how much different are the numbers generated
 func TestRandomPrimes_different(t *testing.T) {
-	rand1, err := randomPrime(utilsTestBitlen, RandomDev)
+	rand1, err := randomPrime(utilsTestBitlen, randomDev)
 	if err != nil {
 		t.Errorf("first random prime number generation failed: %v", err)
 	}
-	rand2, err := randomPrime(utilsTestBitlen, RandomDev)
+	rand2, err := randomPrime(utilsTestBitlen, randomDev)
 	if err != nil {
 		t.Errorf("second random prime number generation failed: %v", err)
 	}
@@ -55,7 +55,7 @@ func TestRandomPrimes_different(t *testing.T) {
 
 // Tests that the output size of a random prime function is the desired.
 func TestRandomPrimes_bitSize(t *testing.T) {
-	rand1, err := randomPrime(utilsTestBitlen, RandomDev)
+	rand1, err := randomPrime(utilsTestBitlen, randomDev)
 	if err != nil {
 		t.Errorf("first random prime number generation failed: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestRandomPrimes_bitSize(t *testing.T) {
 
 // Tests that the output of RandomPrimes is a prime.
 func TestRandomPrimes_isPrime(t *testing.T) {
-	rand1, err := randomPrime(utilsTestBitlen, RandomDev)
+	rand1, err := randomPrime(utilsTestBitlen, randomDev)
 	if err != nil {
 		t.Errorf("first random prime number generation failed: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestGenerateSafePrimes(t *testing.T) {
 
 	pExpected := new(big.Int)
 
-	p, pr, err := GenerateSafePrimes(utilsTestBitlen, RandomDev)
+	p, pr, err := generateSafePrimes(utilsTestBitlen, randomDev)
 	if err != nil {
 		t.Errorf("safe prime generation failed: %v", err)
 	}
@@ -111,12 +111,12 @@ func TestGenerateSafePrimes_keyGeneration(t *testing.T) {
 	d := new(big.Int)
 	r := new(big.Int)
 
-	_, pr, err := GenerateSafePrimes(utilsTestBitlen, RandomDev)
+	_, pr, err := generateSafePrimes(utilsTestBitlen, randomDev)
 	if err != nil {
 		t.Errorf("safe prime generation failed: %v", err)
 	}
 
-	_, qr, err := GenerateSafePrimes(utilsTestBitlen, RandomDev)
+	_, qr, err := generateSafePrimes(utilsTestBitlen, randomDev)
 	if err != nil {
 		t.Errorf("safe prime generation failed: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestGenerateSafePrimes_keyGeneration(t *testing.T) {
 
 func BenchmarkSafePrimes(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_, _, err := GenerateSafePrimes(utilsTestBitlen, RandomDev)
+		_, _, err := generateSafePrimes(utilsTestBitlen, randomDev)
 		if err != nil {
 			b.Errorf("safe prime generation failed: %v", err)
 		}

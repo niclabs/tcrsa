@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"math/big"
 	"testing"
 )
@@ -30,7 +29,7 @@ func TestGenerateKeys_differentKeys(t *testing.T) {
 		key1 := keyShares[i]
 		for j := i + 1; j < len(keyShares); j++ {
 			key2 := keyShares[j]
-			if key1.Equals(key2) {
+			if key1.EqualsSi(key2) {
 				t.Errorf("key shares are equal: k%d=%s, k%d=%s", i, key1.toBase64(), j, key2.toBase64())
 			}
 		}
@@ -63,19 +62,16 @@ func TestGenerateKeys_validRandom(t *testing.T) {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 
-	docB64 := base64.StdEncoding.EncodeToString(docPKCS1)
-	log.Printf("Document: %s", docB64)
-
-	sigShares := make(SignatureShares, l)
+	sigShares := make(SigShareList, l)
 
 	var i uint16
 	for i = 0; i < l; i++ {
-		sigShares[i], err = keyShares[i].SignNode(docPKCS1, keyMeta)
+		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, keyMeta)
 		if err != nil {
 			t.Errorf(fmt.Sprintf("%v", err))
 		}
-		if !sigShares[i].Verify(docPKCS1, keyMeta) {
-			t.Errorf("signature doesn't match")
+		if err := sigShares[i].Verify(docPKCS1, keyMeta); err != nil {
+			panic(fmt.Sprintf("%v", err))
 		}
 	}
 	signature, err := sigShares.Join(docPKCS1, keyMeta)
@@ -83,16 +79,13 @@ func TestGenerateKeys_validRandom(t *testing.T) {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 
-	sigB64 := base64.StdEncoding.EncodeToString(signature)
-	log.Printf("Signature: %s", sigB64)
-
 	if err := rsa.VerifyPKCS1v15(keyMeta.PublicKey, crypto.SHA256, docHash[:], signature); err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 
 }
 
-func TestGenerateKeys_validRFixed(t *testing.T) {
+func TestGenerateKeys_validFixed(t *testing.T) {
 
 	if kLong >= 1<<16-1 || kLong <= 0 {
 		t.Errorf("k should be between 1 and 65535")
@@ -140,32 +133,32 @@ func TestGenerateKeys_validRFixed(t *testing.T) {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 
-	docB64 := base64.StdEncoding.EncodeToString(docPKCS1)
-	log.Printf("Document: %s", docB64)
-
-	sigShares := make(SignatureShares, l)
+	sigShares := make(SigShareList, l)
 
 	var i uint16
 	for i = 0; i < l; i++ {
-		sigShares[i], err = keyShares[i].SignNode(docPKCS1, keyMeta)
+		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, keyMeta)
 		if err != nil {
 			t.Errorf(fmt.Sprintf("%v", err))
 		}
-		if !sigShares[i].Verify(docPKCS1, keyMeta) {
-			t.Errorf("signature doesn't match")
+		if err := sigShares[i].Verify(docPKCS1, keyMeta); err != nil {
+			panic(fmt.Sprintf("%v", err))
 		}
 	}
 	signature, err := sigShares.Join(docPKCS1, keyMeta)
+
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 
 	sigB64 := base64.StdEncoding.EncodeToString(signature)
-	log.Printf("Signature: %s", sigB64)
+
+	if sigB64 != "BUNv4j1NkVFNwx6v0GVG6CfN1Y7yhOBG2Tyy7ci7VK+AVYukZdiajnaYPALHLsEwngDLgNPK40o6HhbWT+ikXQ==" {
+		t.Errorf("signature is not as expected.")
+	}
 
 	if err := rsa.VerifyPKCS1v15(keyMeta.PublicKey, crypto.SHA256, docHash[:], signature); err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
-
 
 }

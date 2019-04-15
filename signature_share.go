@@ -6,22 +6,26 @@ import (
 	"math/big"
 )
 
-type SignatureShare struct {
+// SigShare represents a signature share for a document.
+type SigShare struct {
 	Xi []byte
 	C  []byte
 	Z  []byte
 	Id uint16
 }
 
-type SignatureShares []*SignatureShare
+// Signature is the completed signature of a document, created after
+// joining k signature shares.
 
 type Signature []byte
 
-func (sigShare SignatureShare) GetIndex() uint16 {
-	return sigShare.Id - 1
-}
+// SigShareList is a list of sigShares ready to be joined.
+type SigShareList []*SigShare
 
-func (sigShare SignatureShare) Verify(doc []byte, info *KeyMeta) bool {
+
+// Verifies a signature key using the key metadata and the document partially
+// signed. It returns nil if the singature is valid, and an error if it is not.
+func (sigShare SigShare) Verify(doc []byte, info *KeyMeta) error {
 
 	x := new(big.Int)
 	xi := new(big.Int)
@@ -47,7 +51,7 @@ func (sigShare SignatureShare) Verify(doc []byte, info *KeyMeta) bool {
 	e.SetUint64(uint64(info.PublicKey.E))
 	v.SetBytes(info.VerificationKey.V)
 	u.SetBytes(info.VerificationKey.U)
-	vki.SetBytes(info.VerificationKey.I[sigShare.GetIndex()])
+	vki.SetBytes(info.VerificationKey.I[sigShare.Id-1])
 
 	xi.SetBytes(sigShare.Xi)
 	z.SetBytes(sigShare.Z)
@@ -93,12 +97,14 @@ func (sigShare SignatureShare) Verify(doc []byte, info *KeyMeta) bool {
 	c2.SetBytes(hash)
 	c2.Mod(c2, n)
 
-	return c2.Cmp(c) == 0
-
+	if c2.Cmp(c) == 0 {
+		return nil
+	}
+	return fmt.Errorf("invalid signature share with id %d", sigShare.Id)
 }
 
 // Joins the signatures of the document provided.
-func (sigShares SignatureShares) Join(document []byte, info *KeyMeta) (Signature, error) {
+func (sigShares SigShareList) Join(document []byte, info *KeyMeta) (Signature, error) {
 
 	if document == nil {
 		return []byte{}, fmt.Errorf("document is nil")
@@ -186,7 +192,7 @@ func (sigShares SignatureShares) Join(document []byte, info *KeyMeta) (Signature
 
 }
 
-func (sigShares SignatureShares) LagrangeInterpolation(j, k int64, delta *big.Int) (*big.Int, error) {
+func (sigShares SigShareList) LagrangeInterpolation(j, k int64, delta *big.Int) (*big.Int, error) {
 
 	if int64(len(sigShares)) < k {
 		return new(big.Int), fmt.Errorf("insuficient number of signature shares. provided: %d, needed: %d", len(sigShares), k)

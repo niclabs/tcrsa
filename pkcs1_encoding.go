@@ -10,7 +10,6 @@ import (
 // https://golang.org/src/crypto/rsa/pkcs1v15.go
 
 
-
 // These are ASN1 DER structures:
 //   DigestInfo ::= SEQUENCE {
 //     digestAlgorithm AlgorithmIdentifier,
@@ -30,7 +29,8 @@ var hashPrefixes = map[crypto.Hash][]byte{
 	crypto.RIPEMD160: {0x30, 0x20, 0x30, 0x08, 0x06, 0x06, 0x28, 0xcf, 0x06, 0x03, 0x00, 0x31, 0x04, 0x14},
 }
 
-
+// Copied from SignPKCS15 function from crypto/rsa on https://golang.org/pkg/crypto/rsa/
+// Returns hash info needed to encode a string hash in PKCS v1.5 format.
 func pkcs1v15HashInfo(hash crypto.Hash, inLen int) (hashLen int, prefix []byte, err error) {
 	// Special case: crypto.Hash(0) is used to indicate that the data is
 	// signed directly.

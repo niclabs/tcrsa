@@ -7,34 +7,33 @@ import (
 	"math/big"
 )
 
+const HashLen = 32
+
+// A Key Share stores the Si value of a node, the public N value and an
+// unique incremental ID for the node.
 type KeyShare struct {
 	Si []byte
 	N  []byte
 	Id uint16
 }
 
-const HashLen = 32
-
-type KeyShares []*KeyShare
-
-
-func (share KeyShare) GetIndex() uint16 {
-	return share.Id - 1
-}
+type KeyShareList []*KeyShare
 
 // Compares two keyshare Si Values
-func (share KeyShare) Equals(keyShare2 *KeyShare) bool {
+func (share KeyShare) EqualsSi(keyShare2 *KeyShare) bool {
 	if keyShare2 == nil {
 		return false
 	}
 	return bytes.Compare(share.Si, keyShare2.Si) == 0
 }
 
+// Transforms a Si value of a keyshare to Base64.
 func (share KeyShare) toBase64() string {
 	return base64.StdEncoding.EncodeToString(share.Si)
 }
 
-func (share KeyShare) SignNode(doc []byte, info *KeyMeta) (*SignatureShare, error) {
+// Used by a node to sign a doc, using the provided keyShare and key Metadata.
+func (share KeyShare) NodeSign(doc []byte, info *KeyMeta) (*SigShare, error) {
 
 	x := new(big.Int)
 	xi := new(big.Int)
@@ -58,7 +57,7 @@ func (share KeyShare) SignNode(doc []byte, info *KeyMeta) (*SignatureShare, erro
 	e.SetUint64(uint64(info.PublicKey.E))
 	v.SetBytes(info.VerificationKey.V)
 	u.SetBytes(info.VerificationKey.U)
-	vki.SetBytes(info.VerificationKey.I[share.GetIndex()])
+	vki.SetBytes(info.VerificationKey.I[share.Id-1])
 
 	si.SetBytes(share.Si)
 
@@ -78,9 +77,9 @@ func (share KeyShare) SignNode(doc []byte, info *KeyMeta) (*SignatureShare, erro
 
 
 	// r = abs(random(bytes_len))
-	r, err := RandomDev(n.BitLen() + 2 * HashLen * 8)
+	r, err := randomDev(n.BitLen() + 2 * HashLen * 8)
 	if err != nil {
-		return &SignatureShare{}, err
+		return &SigShare{}, err
 	}
 
 	// v' = v^r % n
@@ -107,7 +106,7 @@ func (share KeyShare) SignNode(doc []byte, info *KeyMeta) (*SignatureShare, erro
 	z.Mul(c, si)
 	z.Add(z, r)
 
-	return &SignatureShare{
+	return &SigShare{
 		Id: share.Id,
 		Xi: xi.Bytes(),
 		C:  c.Bytes(),

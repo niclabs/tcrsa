@@ -12,11 +12,11 @@ func TestSignatureShares_LagrangeInterpolation(t *testing.T) {
 
 	delta := new(big.Int)
 
-	shares := make(SignatureShares, signatureShareTestLength)
+	shares := make(SigShareList, signatureShareTestLength)
 
 	var i uint16
 	for i = 0; i < signatureShareTestLength; i++ {
-		shares[i] = &SignatureShare{
+		shares[i] = &SigShare{
 			Id: i + 1,
 		}
 	}

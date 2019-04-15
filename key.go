@@ -13,32 +13,32 @@ const MaxBitsize = 1 << 13
 // Default e value.
 const F4 = 65537
 
-// This function creates l key shares for a k-threshold signing scheme.
+// Creates l key shares for a k-threshold signing scheme.
 // It returns the meta information common to all the keys, and an array with all the key shares.
-func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeyShares, keyMeta *KeyMeta, err error) {
+func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeyShareList, keyMeta *KeyMeta, err error) {
 
 	// Parameter checking
 	if bitSize < MinBitsize || bitSize > MaxBitsize {
-		return make(KeyShares, 0), &KeyMeta{}, fmt.Errorf("bit size should be between %d and %d, but it is %d", MinBitsize, MaxBitsize, bitSize)
+		return make(KeyShareList, 0), &KeyMeta{}, fmt.Errorf("bit size should be between %d and %d, but it is %d", MinBitsize, MaxBitsize, bitSize)
 	}
 	if l <= 1 {
-		return make(KeyShares, 0), &KeyMeta{}, fmt.Errorf("l should be greater than 1, but it is %d", l)
+		return make(KeyShareList, 0), &KeyMeta{}, fmt.Errorf("l should be greater than 1, but it is %d", l)
 	}
 	if k <= 0 {
-		return make(KeyShares, 0), &KeyMeta{}, fmt.Errorf("k should be greater than 0, but it is %d", k)
+		return make(KeyShareList, 0), &KeyMeta{}, fmt.Errorf("k should be greater than 0, but it is %d", k)
 	}
 	if k < (l/2+1) || k > l {
-		return make(KeyShares, 0), &KeyMeta{}, fmt.Errorf("k should be between the %d and %d, but it is %d", (l/2)+1, l, k)
+		return make(KeyShareList, 0), &KeyMeta{}, fmt.Errorf("k should be between the %d and %d, but it is %d", (l/2)+1, l, k)
 	}
 
 	pPrimeSize := (bitSize + 1) / 2
 	qPrimeSize := bitSize - pPrimeSize - 1
 
 	if args.P != nil && args.P.BitLen() != pPrimeSize {
-		return make(KeyShares, 0), &KeyMeta{}, fmt.Errorf("P bit length is %d, but it should be %d", args.P.BitLen(), pPrimeSize)
+		return make(KeyShareList, 0), &KeyMeta{}, fmt.Errorf("P bit length is %d, but it should be %d", args.P.BitLen(), pPrimeSize)
 	}
 	if args.Q != nil && args.Q.BitLen() != qPrimeSize {
-		return make(KeyShares, 0), &KeyMeta{}, fmt.Errorf("Q bit length is %d, but it should be %d", args.Q.BitLen(), qPrimeSize)
+		return make(KeyShareList, 0), &KeyMeta{}, fmt.Errorf("Q bit length is %d, but it should be %d", args.Q.BitLen(), qPrimeSize)
 	}
 
 	keyMeta = &KeyMeta{
@@ -48,7 +48,7 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 		VerificationKey: NewVerificationKey(l),
 	}
 
-	keyShares = make(KeyShares, keyMeta.L)
+	keyShares = make(KeyShareList, keyMeta.L)
 
 	var i uint16
 	for i = 0; i < keyMeta.L; i++ {
@@ -76,8 +76,8 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 		p.Set(args.P)
 		pr.Sub(p, big.NewInt(1)).Div(pr, big.NewInt(2))
 	} else {
-		if p, pr, err = GenerateSafePrimes(pPrimeSize, RandomDev); err != nil {
-			return make(KeyShares, 0), &KeyMeta{}, err
+		if p, pr, err = generateSafePrimes(pPrimeSize, randomDev); err != nil {
+			return make(KeyShareList, 0), &KeyMeta{}, err
 		}
 	}
 
@@ -85,8 +85,8 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 		q.Set(args.Q)
 		qr.Sub(q, big.NewInt(1)).Div(qr, big.NewInt(2))
 	} else {
-		if q, qr, err = GenerateSafePrimes(qPrimeSize, RandomDev); err != nil {
-			return make(KeyShares, 0), &KeyMeta{}, err
+		if q, qr, err = generateSafePrimes(qPrimeSize, randomDev); err != nil {
+			return make(KeyShareList, 0), &KeyMeta{}, err
 		}
 	}
 
@@ -119,9 +119,9 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 
 	if args.R == nil {
 		for divisor.Cmp(big.NewInt(1)) != 0 {
-			r, err = RandomDev(n.BitLen())
+			r, err = randomDev(n.BitLen())
 			if err != nil {
-				return make(KeyShares, 0), &KeyMeta{}, nil
+				return make(KeyShareList, 0), &KeyMeta{}, nil
 			}
 			divisor.GCD(nil, nil, r, n)
 		}
@@ -137,9 +137,9 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 
 	if args.U == nil {
 		for cond := true; cond; cond = big.Jacobi(vku, n) != -1 {
-			vku, err = RandomDev(n.BitLen())
+			vku, err = randomDev(n.BitLen())
 			if err != nil {
-				return make(KeyShares, 0), &KeyMeta{}, nil
+				return make(KeyShareList, 0), &KeyMeta{}, nil
 			}
 			vku.Mod(vku, n)
 		}
@@ -162,7 +162,7 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 		poly, err = CreateFixedPolynomial(int(k-1), d, m)
 	}
 	if err != nil {
-		return make(KeyShares, 0), &KeyMeta{}, err
+		return make(KeyShareList, 0), &KeyMeta{}, err
 	}
 
 	// Calculate Key Shares for each i TC participant.

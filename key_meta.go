@@ -5,7 +5,7 @@ import (
 	"math/big"
 )
 
-// KeyMeta stores the metainformation of a distributed key generation.
+// KeyMeta stores the meta information of a distributed key generation.
 // It stores the RSA public key, the threshold value k and the total shares value l.
 // It also has stored the verification keys for each signed share.
 type KeyMeta struct {

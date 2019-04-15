@@ -36,7 +36,7 @@ func CreateRandomPolynomial(d int, x0, m *big.Int) (Polynomial, error) {
 	poly[0].Set(x0)
 
 	for i := 1; i < len(poly); i++ {
-		rand, err := RandomDev(bitLen)
+		rand, err := randomDev(bitLen)
 		if err != nil {
 			return Polynomial{}, err
 		}
