@@ -9,8 +9,8 @@ import (
 // Number of Miller-Rabin tests
 const c = 25
 
-// A random function which generates a random big number, using crypto/rand
-// crypto secure Golang library.
+// randomDev is a function which generates a random big number, using crypto/rand
+// crypto-secure Golang library.
 func randomDev(bitLen int) (*big.Int, error) {
 	randNum := big.NewInt(0)
 	if bitLen <= 0 {
@@ -45,7 +45,7 @@ func randomDev(bitLen int) (*big.Int, error) {
 	return randNum, nil
 }
 
-// Returns a random prime of length bitLen, using a given random function randFn.
+// randomPrime a random prime of length bitLen, using a given random function randFn.
 func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, error) {
 	num := new(big.Int)
 	var err error
@@ -57,7 +57,6 @@ func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, erro
 		return big.NewInt(0), fmt.Errorf("bit length must be positive")
 	}
 
-	// Obtain a random number of length bitLen
 	for num.BitLen() != bitLen {
 		num, err = randFn(bitLen)
 		if err != nil {
@@ -76,7 +75,7 @@ func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, erro
 	return num, nil
 }
 
-// Returns the next prime number based on a specific number, checking for its primality
+// nextPrime returns the next prime number based on a specific number, checking for its prime condition
 // using ProbablyPrime function.
 func nextPrime(num *big.Int, n int) *big.Int {
 	// Possible prime should be odd
@@ -88,7 +87,7 @@ func nextPrime(num *big.Int, n int) *big.Int {
 	return num
 }
 
-// Fast Safe Prime Generation. Generates two primes p and q, in a way that q
+// generateSafePrimes generates two primes p and q, in a way that q
 // is equal to (p-1)/2. The greatest prime bit length is at least bitLen bits.
 func generateSafePrimes(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, *big.Int, error) {
 	if randFn == nil {

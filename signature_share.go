@@ -16,15 +16,13 @@ type SigShare struct {
 
 // Signature is the completed signature of a document, created after
 // joining k signature shares.
-
 type Signature []byte
 
 // SigShareList is a list of sigShares ready to be joined.
 type SigShareList []*SigShare
 
-
-// Verifies a signature key using the key metadata and the document partially
-// signed. It returns nil if the singature is valid, and an error if it is not.
+// Verify verifies a signature key using the key metadata and the document partially
+// signed. It returns nil if the signature is valid, and an error if it is not.
 func (sigShare SigShare) Verify(doc []byte, info *KeyMeta) error {
 
 	x := new(big.Int)
@@ -103,7 +101,7 @@ func (sigShare SigShare) Verify(doc []byte, info *KeyMeta) error {
 	return fmt.Errorf("invalid signature share with id %d", sigShare.Id)
 }
 
-// Joins the signatures of the document provided.
+// Join joins the signatures of the document provided.
 func (sigShares SigShareList) Join(document []byte, info *KeyMeta) (Signature, error) {
 
 	if document == nil {
@@ -165,7 +163,7 @@ func (sigShares SigShareList) Join(document []byte, info *KeyMeta) (Signature, e
 	for i = 0; i < k; i++ {
 		si.SetBytes(sigShares[i].Xi)
 		id := int64(sigShares[i].Id)
-		lambdaK2, err := sigShares.LagrangeInterpolation(id, int64(k), delta)
+		lambdaK2, err := sigShares.lagrangeInterpolation(id, int64(k), delta)
 		if err != nil {
 			return []byte{}, err
 		}
@@ -192,7 +190,8 @@ func (sigShares SigShareList) Join(document []byte, info *KeyMeta) (Signature, e
 
 }
 
-func (sigShares SigShareList) LagrangeInterpolation(j, k int64, delta *big.Int) (*big.Int, error) {
+// This function generates the lagrange interpolation for a set of signature shares.
+func (sigShares SigShareList) lagrangeInterpolation(j, k int64, delta *big.Int) (*big.Int, error) {
 
 	if int64(len(sigShares)) < k {
 		return new(big.Int), fmt.Errorf("insuficient number of signature shares. provided: %d, needed: %d", len(sigShares), k)

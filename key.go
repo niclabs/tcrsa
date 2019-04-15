@@ -6,20 +6,20 @@ import (
 	"math/big"
 )
 
-const MinBitsize = 1 << 9
-const MaxBitsize = 1 << 13
+const minBitSize = 1 << 9
+const maxBitSize = 1 << 13
 
 // Fermat fourth number
 // Default e value.
-const F4 = 65537
+const f4 = 65537
 
-// Creates l key shares for a k-threshold signing scheme.
+// GenerateKeys creates l key shares for a k-threshold signing scheme.
 // It returns the meta information common to all the keys, and an array with all the key shares.
 func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeyShareList, keyMeta *KeyMeta, err error) {
 
 	// Parameter checking
-	if bitSize < MinBitsize || bitSize > MaxBitsize {
-		return make(KeyShareList, 0), &KeyMeta{}, fmt.Errorf("bit size should be between %d and %d, but it is %d", MinBitsize, MaxBitsize, bitSize)
+	if bitSize < minBitSize || bitSize > maxBitSize {
+		return make(KeyShareList, 0), &KeyMeta{}, fmt.Errorf("bit size should be between %d and %d, but it is %d", minBitSize, maxBitSize, bitSize)
 	}
 	if l <= 1 {
 		return make(KeyShareList, 0), &KeyMeta{}, fmt.Errorf("l should be greater than 1, but it is %d", l)
@@ -108,7 +108,7 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 		}
 	}
 	if !eSet {
-		keyMeta.PublicKey.E = F4
+		keyMeta.PublicKey.E = f4
 		e = big.NewInt(int64(keyMeta.PublicKey.E))
 	}
 

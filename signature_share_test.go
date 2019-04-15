@@ -31,7 +31,7 @@ func TestSignatureShares_LagrangeInterpolation(t *testing.T) {
 	}
 
 	for i := 0; i < signatureShareTestK; i++ {
-		res, err := shares.LagrangeInterpolation(int64(i+1), signatureShareTestK, delta)
+		res, err := shares.lagrangeInterpolation(int64(i+1), signatureShareTestK, delta)
 		if err != nil {
 			t.Errorf("couldn't compute lagrange interpolation")
 			return

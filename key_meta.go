@@ -15,14 +15,13 @@ type KeyMeta struct {
 	VerificationKey *VerificationKey
 }
 
-
-// Key Meta Args. Define the initialization values for key generation.
+// KeyMetaArgs defines the initialization values for key generation.
 // It allows to load previously computed keys.
 type KeyMetaArgs struct {
-	E int
-	P *big.Int
-	Q *big.Int
-	R *big.Int
-	U *big.Int
+	E         int
+	P         *big.Int
+	Q         *big.Int
+	R         *big.Int
+	U         *big.Int
 	FixedPoly bool
 }

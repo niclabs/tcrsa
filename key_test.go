@@ -30,7 +30,7 @@ func TestGenerateKeys_differentKeys(t *testing.T) {
 		for j := i + 1; j < len(keyShares); j++ {
 			key2 := keyShares[j]
 			if key1.EqualsSi(key2) {
-				t.Errorf("key shares are equal: k%d=%s, k%d=%s", i, key1.toBase64(), j, key2.toBase64())
+				t.Errorf("key shares are equal: k%d=%s, k%d=%s", i, key1.ToBase64(), j, key2.ToBase64())
 			}
 		}
 	}

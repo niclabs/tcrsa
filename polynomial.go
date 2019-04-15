@@ -8,24 +8,24 @@ import (
 
 type Polynomial []*big.Int
 
-// Creates a polynomial of degree d with all its d+1 coefficients in 0.
+// NewPolynomial creates a polynomial of degree d with all its d+1 coefficients in 0.
 func NewPolynomial(d int) Polynomial {
-	poly := make(Polynomial, d + 1)
+	poly := make(Polynomial, d+1)
 	for i := 0; i < len(poly); i++ {
 		poly[i] = new(big.Int)
 	}
 	return poly
 }
 
-// Returns the degree of a polynomial, which is the length of the coefficient
+// GetDegree returns the degree of a polynomial, which is the length of the coefficient
 // array, minus 1.
 func (p Polynomial) getDegree() int {
 	return len(p) - 1
 }
 
-// Creates a polynomial of degree "d" with random coefficients for terms with degree
-// greater than 1. The coefficient of the term of degree 0 is x0 and the module of the
-// coefficients for the polynomial is m.
+// CreateRandomPolynomial creates a polynomial of degree "d" with random coefficients as terms
+// with degree greater than 1. The coefficient of the term of degree 0 is x0 and the module for all the
+// coefficients of the polynomial is m.
 func CreateRandomPolynomial(d int, x0, m *big.Int) (Polynomial, error) {
 	if m.Sign() < 0 {
 		return Polynomial{}, fmt.Errorf("m is negative")
@@ -45,8 +45,8 @@ func CreateRandomPolynomial(d int, x0, m *big.Int) (Polynomial, error) {
 	return poly, nil
 }
 
-// Creates a polynomial of degree "d" with fixed coefficients for terms with degree
-// greater than 1. The coefficient of the term of degree 0 is x0 and the module of the
+// CreateFixedPolynomial a polynomial of degree "d" with fixed coefficients for terms with
+// degree greater than 1. The coefficient of the term of degree 0 is x0 and the module of the
 // coefficients for the polynomial is m.
 func CreateFixedPolynomial(d int, x0, m *big.Int) (Polynomial, error) {
 	if m.Sign() < 0 {
@@ -62,16 +62,17 @@ func CreateFixedPolynomial(d int, x0, m *big.Int) (Polynomial, error) {
 	return poly, nil
 }
 
-// Evaluates a polynomial with Horner's method.
+// Eval evaluates a polynomial to x with Horner's method and returns the result.
 func (p Polynomial) Eval(x *big.Int) *big.Int {
 	y := big.NewInt(0)
 	for k := len(p) - 1; k >= 0; k-- {
 		y.Mul(y, x)
-		y.Add(y,p[k])
+		y.Add(y, p[k])
 	}
 	return y
 }
 
+// String returns the polynomial formatted as a string.
 func (p Polynomial) String() string {
 	s := make([]string, len(p))
 	for i := 0; i < len(p); i++ {
