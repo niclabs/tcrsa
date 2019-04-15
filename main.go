@@ -15,6 +15,8 @@ var lLong uint64
 var s int
 var m string
 
+const hashType = crypto.SHA256
+
 func init() {
 	flag.Uint64Var(&kLong, "k", 3, "Threshold size")
 	flag.Uint64Var(&lLong, "l", 5, "Number of shares")
@@ -45,7 +47,7 @@ func main() {
 	}
 	docHash := sha256.Sum256([]byte(m))
 
-	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), crypto.SHA256, docHash[:])
+	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), hashType, docHash[:])
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
@@ -57,7 +59,7 @@ func main() {
 
 	var i uint16
 	for i = 0; i < l; i++ {
-		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, keyMeta)
+		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, hashType, keyMeta)
 		if err != nil {
 			panic(fmt.Sprintf("%v", err))
 		}

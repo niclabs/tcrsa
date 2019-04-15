@@ -2,12 +2,11 @@ package main
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/sha256"
 	"encoding/base64"
 	"math/big"
 )
-
-const HashLen = 32
 
 // KeyShare stores the Si value of a node, the public N value and an
 // unique incremental ID for the node.
@@ -17,6 +16,7 @@ type KeyShare struct {
 	Id uint16
 }
 
+// KeyShareList is a list of KeyShare values.
 type KeyShareList []*KeyShare
 
 // EqualsSi compares two keyshare Si Values and returns true if they are equal.
@@ -34,7 +34,7 @@ func (share KeyShare) ToBase64() string {
 
 // NodeSign is used by a node to sign a doc, using the provided keyShare and key Metadata.
 // It returns a SigShare with the signature of this node, or an error if the signing process failed.
-func (share KeyShare) NodeSign(doc []byte, info *KeyMeta) (*SigShare, error) {
+func (share KeyShare) NodeSign(doc []byte, hashType crypto.Hash, info *KeyMeta) (*SigShare, error) {
 
 	x := new(big.Int)
 	xi := new(big.Int)
@@ -77,7 +77,7 @@ func (share KeyShare) NodeSign(doc []byte, info *KeyMeta) (*SigShare, error) {
 	xi2.Exp(xi, big.NewInt(2), n)
 
 	// r = abs(random(bytes_len))
-	r, err := randomDev(n.BitLen() + 2*HashLen*8)
+	r, err := randomDev(n.BitLen() + 2*hashType.Size()*8)
 	if err != nil {
 		return &SigShare{}, err
 	}

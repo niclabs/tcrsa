@@ -18,6 +18,7 @@ const keyTestFixedP = "132TWiSEqNNnfiF5AZjS2R8SwUszMGnHSKTYAtWckuc="
 const keyTestFixedQ = "f8PooDmAlOUFf3BdAxPCOy8p5ArfLHs6ODFWTFnpUxM="
 const keyTestFixedR = "UfF0MWqXf+K4GjmcWhxdK3CH/XVsDxm8r+CqBenL7TfdWNAD4rpUMIHzhqb0WV6KAAJfGEBlHyj1JH2rr9LiUA=="
 const keyTestFixedU = "CpJe+VzsAI3FcPioeMXklkxFFb+M9MaN1VzuScOs+7bwvczarYABZhyjPFC8McXCFAJIvaKTZwTlpylwJPumZw=="
+const keyTestHashType = crypto.SHA256
 
 func TestGenerateKeys_differentKeys(t *testing.T) {
 	keyShares, _, err := GenerateKeys(keyTestBitLen, keyTestK, keyTestL, &KeyMetaArgs{})
@@ -57,7 +58,7 @@ func TestGenerateKeys_validRandom(t *testing.T) {
 	}
 	docHash := sha256.Sum256([]byte(m))
 
-	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), crypto.SHA256, docHash[:])
+	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), keyTestHashType, docHash[:])
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
@@ -66,7 +67,7 @@ func TestGenerateKeys_validRandom(t *testing.T) {
 
 	var i uint16
 	for i = 0; i < l; i++ {
-		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, keyMeta)
+		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, keyTestHashType, keyMeta)
 		if err != nil {
 			t.Errorf(fmt.Sprintf("%v", err))
 		}
@@ -79,7 +80,7 @@ func TestGenerateKeys_validRandom(t *testing.T) {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 
-	if err := rsa.VerifyPKCS1v15(keyMeta.PublicKey, crypto.SHA256, docHash[:], signature); err != nil {
+	if err := rsa.VerifyPKCS1v15(keyMeta.PublicKey, keyTestHashType, docHash[:], signature); err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 
@@ -128,7 +129,7 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 	}
 	docHash := sha256.Sum256([]byte(m))
 
-	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), crypto.SHA256, docHash[:])
+	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), keyTestHashType, docHash[:])
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
@@ -137,7 +138,7 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 
 	var i uint16
 	for i = 0; i < l; i++ {
-		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, keyMeta)
+		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, keyTestHashType, keyMeta)
 		if err != nil {
 			t.Errorf(fmt.Sprintf("%v", err))
 		}
@@ -157,7 +158,7 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 		t.Errorf("signature is not as expected.")
 	}
 
-	if err := rsa.VerifyPKCS1v15(keyMeta.PublicKey, crypto.SHA256, docHash[:], signature); err != nil {
+	if err := rsa.VerifyPKCS1v15(keyMeta.PublicKey, keyTestHashType, docHash[:], signature); err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 

@@ -6,11 +6,13 @@ import (
 	"strings"
 )
 
-type Polynomial []*big.Int
+// polynomial represents a classic polynomial, with convenience methods useful for
+// the operations the Threshold Criptography library needs.
+type polynomial []*big.Int
 
-// NewPolynomial creates a polynomial of degree d with all its d+1 coefficients in 0.
-func NewPolynomial(d int) Polynomial {
-	poly := make(Polynomial, d+1)
+// newPolynomial creates a polynomial of degree d with all its d+1 coefficients in 0.
+func newPolynomial(d int) polynomial {
+	poly := make(polynomial, d+1)
 	for i := 0; i < len(poly); i++ {
 		poly[i] = new(big.Int)
 	}
@@ -19,40 +21,40 @@ func NewPolynomial(d int) Polynomial {
 
 // GetDegree returns the degree of a polynomial, which is the length of the coefficient
 // array, minus 1.
-func (p Polynomial) getDegree() int {
+func (p polynomial) getDegree() int {
 	return len(p) - 1
 }
 
-// CreateRandomPolynomial creates a polynomial of degree "d" with random coefficients as terms
+// createRandomPolynomial creates a polynomial of degree "d" with random coefficients as terms
 // with degree greater than 1. The coefficient of the term of degree 0 is x0 and the module for all the
 // coefficients of the polynomial is m.
-func CreateRandomPolynomial(d int, x0, m *big.Int) (Polynomial, error) {
+func createRandomPolynomial(d int, x0, m *big.Int) (polynomial, error) {
 	if m.Sign() < 0 {
-		return Polynomial{}, fmt.Errorf("m is negative")
+		return polynomial{}, fmt.Errorf("m is negative")
 	}
 	bitLen := m.BitLen() - 1
-	poly := NewPolynomial(d)
+	poly := newPolynomial(d)
 
 	poly[0].Set(x0)
 
 	for i := 1; i < len(poly); i++ {
 		rand, err := randomDev(bitLen)
 		if err != nil {
-			return Polynomial{}, err
+			return polynomial{}, err
 		}
 		poly[i].Mod(rand, m)
 	}
 	return poly, nil
 }
 
-// CreateFixedPolynomial a polynomial of degree "d" with fixed coefficients for terms with
+// createFixedPolynomial a polynomial of degree "d" with fixed coefficients for terms with
 // degree greater than 1. The coefficient of the term of degree 0 is x0 and the module of the
 // coefficients for the polynomial is m.
-func CreateFixedPolynomial(d int, x0, m *big.Int) (Polynomial, error) {
+func createFixedPolynomial(d int, x0, m *big.Int) (polynomial, error) {
 	if m.Sign() < 0 {
-		return Polynomial{}, fmt.Errorf("m is negative")
+		return polynomial{}, fmt.Errorf("m is negative")
 	}
-	poly := NewPolynomial(d)
+	poly := newPolynomial(d)
 	poly[0].Set(x0)
 
 	for i := 1; i < len(poly); i++ {
@@ -62,8 +64,8 @@ func CreateFixedPolynomial(d int, x0, m *big.Int) (Polynomial, error) {
 	return poly, nil
 }
 
-// Eval evaluates a polynomial to x with Horner's method and returns the result.
-func (p Polynomial) Eval(x *big.Int) *big.Int {
+// eval evaluates a polynomial to x with Horner's method and returns the result.
+func (p polynomial) eval(x *big.Int) *big.Int {
 	y := big.NewInt(0)
 	for k := len(p) - 1; k >= 0; k-- {
 		y.Mul(y, x)
@@ -72,8 +74,8 @@ func (p Polynomial) Eval(x *big.Int) *big.Int {
 	return y
 }
 
-// String returns the polynomial formatted as a string.
-func (p Polynomial) String() string {
+// string returns the polynomial formatted as a string.
+func (p polynomial) string() string {
 	s := make([]string, len(p))
 	for i := 0; i < len(p); i++ {
 		s[i] = fmt.Sprintf("%dx^%d", p[i], i)

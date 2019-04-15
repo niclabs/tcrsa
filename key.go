@@ -152,14 +152,14 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 	// Delta is fact(l)
 	deltaInv.MulRange(1, int64(l)).ModInverse(deltaInv, m)
 
-	// Generate Polynomial with random coefficients.
+	// Generate polynomial with random coefficients.
 
-	var poly Polynomial
+	var poly polynomial
 
 	if !args.FixedPoly {
-		poly, err = CreateRandomPolynomial(int(k-1), d, m)
+		poly, err = createRandomPolynomial(int(k-1), d, m)
 	} else {
-		poly, err = CreateFixedPolynomial(int(k-1), d, m)
+		poly, err = createFixedPolynomial(int(k-1), d, m)
 	}
 	if err != nil {
 		return make(KeyShareList, 0), &KeyMeta{}, err
@@ -169,7 +169,7 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 	for i = 1; i <= keyMeta.L; i++ {
 		keyShare := keyShares[i-1]
 		keyShare.Id = i
-		si := poly.Eval(big.NewInt(int64(i)))
+		si := poly.eval(big.NewInt(int64(i)))
 		si.Mul(si, deltaInv)
 		si.Mod(si, m)
 		keyShare.N = n.Bytes()
