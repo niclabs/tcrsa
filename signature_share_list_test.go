@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSignatureShares_LagrangeInterpolation(t *testing.T) {
+func TestSignatureShareList_LagrangeInterpolation(t *testing.T) {
 	const signatureShareTestLength = 5
 	const signatureShareTestK = 5
 	const signatureShareTestM = 1024

@@ -8,33 +8,33 @@ import (
 	"math/big"
 )
 
-// KeyShare stores the Si value of a node, the public N value and an
-// unique incremental ID for the node.
+// KeyShare stores the Si value of a node and an unique incremental ID for the node.
+// It's used to generate a signature share.
 type KeyShare struct {
-	Si []byte
-	N  []byte
-	Id uint16
+	Si []byte // S_i value of the Key Share.
+	Id uint16 // ID of the key share.
 }
 
 // KeyShareList is a list of KeyShare values.
 type KeyShareList []*KeyShare
 
-// EqualsSi compares two keyshare Si Values and returns true if they are equal.
-func (share KeyShare) EqualsSi(keyShare2 *KeyShare) bool {
+// EqualsSi compares two key share S_i values and returns true if they are equal.
+func (keyShare KeyShare) EqualsSi(keyShare2 *KeyShare) bool {
 	if keyShare2 == nil {
 		return false
 	}
-	return bytes.Compare(share.Si, keyShare2.Si) == 0
+	return bytes.Compare(keyShare.Si, keyShare2.Si) == 0
 }
 
 // ToBase64 transforms a Si value of a keyshare to Base64, and returns it.
-func (share KeyShare) ToBase64() string {
-	return base64.StdEncoding.EncodeToString(share.Si)
+func (keyShare KeyShare) ToBase64() string {
+	return base64.StdEncoding.EncodeToString(keyShare.Si)
 }
 
-// NodeSign is used by a node to sign a doc, using the provided keyShare and key Metadata.
+// Sign generates a signature share using a key share. A standard RSA signature is generated using several
+// signature shares. The document to be signed should be prepared (hashed and padded) before using this function.
 // It returns a SigShare with the signature of this node, or an error if the signing process failed.
-func (share KeyShare) NodeSign(doc []byte, hashType crypto.Hash, info *KeyMeta) (*SigShare, error) {
+func (keyShare KeyShare) Sign(doc []byte, hashType crypto.Hash, info *KeyMeta) (sigShare *SigShare, err error) {
 
 	x := new(big.Int)
 	xi := new(big.Int)
@@ -50,7 +50,6 @@ func (share KeyShare) NodeSign(doc []byte, hashType crypto.Hash, info *KeyMeta) 
 	vPrime := new(big.Int)
 	xPrime := new(big.Int)
 	exp := new(big.Int)
-
 	si := new(big.Int)
 
 	x.SetBytes(doc)
@@ -58,16 +57,16 @@ func (share KeyShare) NodeSign(doc []byte, hashType crypto.Hash, info *KeyMeta) 
 	e.SetUint64(uint64(info.PublicKey.E))
 	v.SetBytes(info.VerificationKey.V)
 	u.SetBytes(info.VerificationKey.U)
-	vki.SetBytes(info.VerificationKey.I[share.Id-1])
+	vki.SetBytes(info.VerificationKey.I[keyShare.Id-1])
 
-	si.SetBytes(share.Si)
+	si.SetBytes(keyShare.Si)
 
 	// x = doc if (doc | n) == 1 else doc * u^e
 	if big.Jacobi(x, n) == -1 {
 		ue := new(big.Int).Exp(u, e, n)
 		x.Mul(x, ue).Mod(x, n)
 	}
-	// xi = x^(2*share) mod n
+	// xi = x^(2*keyShare) mod n
 	exp.Mul(si, big.NewInt(2))
 	xi.Exp(x, exp, n)
 	// x~ = x^4 % n
@@ -79,7 +78,7 @@ func (share KeyShare) NodeSign(doc []byte, hashType crypto.Hash, info *KeyMeta) 
 	// r = abs(random(bytes_len))
 	r, err := randomDev(n.BitLen() + 2*hashType.Size()*8)
 	if err != nil {
-		return &SigShare{}, err
+		return
 	}
 
 	// v' = v^r % n
@@ -106,10 +105,11 @@ func (share KeyShare) NodeSign(doc []byte, hashType crypto.Hash, info *KeyMeta) 
 	z.Mul(c, si)
 	z.Add(z, r)
 
-	return &SigShare{
-		Id: share.Id,
+	sigShare = &SigShare{
+		Id: keyShare.Id,
 		Xi: xi.Bytes(),
 		C:  c.Bytes(),
 		Z:  z.Bytes(),
-	}, nil
+	}
+	return
 }

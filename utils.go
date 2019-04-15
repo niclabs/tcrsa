@@ -11,10 +11,11 @@ const c = 25
 
 // randomDev is a function which generates a random big number, using crypto/rand
 // crypto-secure Golang library.
-func randomDev(bitLen int) (*big.Int, error) {
-	randNum := big.NewInt(0)
+func randomDev(bitLen int) (randNum *big.Int, err error) {
+	randNum = big.NewInt(0)
 	if bitLen <= 0 {
-		return randNum, fmt.Errorf("bitlen should be greater than 0, but it is %d", bitLen)
+		err = fmt.Errorf("bitlen should be greater than 0, but it is %d", bitLen)
+		return
 	}
 	byteLen := bitLen / 8
 	byteRem := bitLen % 8
@@ -24,9 +25,9 @@ func randomDev(bitLen int) (*big.Int, error) {
 	rawRand := make([]byte, byteLen)
 
 	for randNum.BitLen() != bitLen {
-		_, err := rand.Read(rawRand)
+		_, err = rand.Read(rawRand)
 		if err != nil {
-			return randNum, err
+			return
 		}
 		randNum.SetBytes(rawRand)
 		// set MSBs to 0 to get a bitLen equal to bitLen param.
@@ -39,40 +40,43 @@ func randomDev(bitLen int) (*big.Int, error) {
 	}
 
 	if randNum.BitLen() != bitLen {
-		return big.NewInt(0), fmt.Errorf("random number returned should have length %d, but its length is %d", bitLen, randNum.BitLen())
+		err = fmt.Errorf("random number returned should have length %d, but its length is %d", bitLen, randNum.BitLen())
+		return
 	}
-
-	return randNum, nil
+	return
 }
 
 // randomPrime a random prime of length bitLen, using a given random function randFn.
-func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (*big.Int, error) {
-	num := new(big.Int)
-	var err error
+func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (randPrime *big.Int, err error) {
+	randPrime = new(big.Int)
 
 	if randFn == nil {
-		return big.NewInt(0), fmt.Errorf("random function cannot be nil")
+		err = fmt.Errorf("random function cannot be nil")
+		return
 	}
 	if bitLen <= 0 {
-		return big.NewInt(0), fmt.Errorf("bit length must be positive")
+		err = fmt.Errorf("bit length must be positive")
+		return
 	}
 
-	for num.BitLen() != bitLen {
-		num, err = randFn(bitLen)
+	for randPrime.BitLen() != bitLen {
+		randPrime, err = randFn(bitLen)
 		if err != nil {
-			return num, err
+			return
 		}
-		num = nextPrime(num, c)
+		randPrime = nextPrime(randPrime, c)
 	}
 
-	if num.BitLen() != bitLen {
-		return big.NewInt(0), fmt.Errorf("random number returned should have length %d, but its length is %d", bitLen, num.BitLen())
+	if randPrime.BitLen() != bitLen {
+		err = fmt.Errorf("random number returned should have length %d, but its length is %d", bitLen, randPrime.BitLen())
+		return
 	}
 
-	if !num.ProbablyPrime(c) {
-		return big.NewInt(0), fmt.Errorf("random number returned is not prime")
+	if !randPrime.ProbablyPrime(c) {
+		err = fmt.Errorf("random number returned is not prime")
+		return
 	}
-	return num, nil
+	return
 }
 
 // nextPrime returns the next prime number based on a specific number, checking for its prime condition

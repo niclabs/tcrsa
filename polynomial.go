@@ -7,7 +7,7 @@ import (
 )
 
 // polynomial represents a classic polynomial, with convenience methods useful for
-// the operations the Threshold Criptography library needs.
+// the operations the Threshold Cryptography library needs.
 type polynomial []*big.Int
 
 // newPolynomial creates a polynomial of degree d with all its d+1 coefficients in 0.

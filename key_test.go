@@ -23,7 +23,7 @@ const keyTestSize = 512
 const keyTestMessage = "Hello world"
 
 func TestGenerateKeys_differentKeys(t *testing.T) {
-	keyShares, _, err := GenerateKeys(keyTestBitLen, keyTestK, keyTestL, &KeyMetaArgs{})
+	keyShares, _, err := NewKey(keyTestBitLen, keyTestK, keyTestL, &KeyMetaArgs{})
 	if err != nil {
 		t.Errorf("couldn't create keys")
 	}
@@ -45,7 +45,7 @@ func TestGenerateKeys_validRandom(t *testing.T) {
 
 	keyMetaArgs := &KeyMetaArgs{}
 
-	keyShares, keyMeta, err := GenerateKeys(keyTestSize, uint16(k), uint16(l), keyMetaArgs)
+	keyShares, keyMeta, err := NewKey(keyTestSize, uint16(k), uint16(l), keyMetaArgs)
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
@@ -60,7 +60,7 @@ func TestGenerateKeys_validRandom(t *testing.T) {
 
 	var i uint16
 	for i = 0; i < l; i++ {
-		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, keyTestHashType, keyMeta)
+		sigShares[i], err = keyShares[i].Sign(docPKCS1, keyTestHashType, keyMeta)
 		if err != nil {
 			t.Errorf(fmt.Sprintf("%v", err))
 		}
@@ -105,9 +105,8 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 	keyMetaArgs.Q = new(big.Int).SetBytes(qBig)
 	keyMetaArgs.R = new(big.Int).SetBytes(rBig)
 	keyMetaArgs.U = new(big.Int).SetBytes(vkuBig)
-	keyMetaArgs.FixedPoly = true
 
-	keyShares, keyMeta, err := GenerateKeys(keyTestSize, uint16(k), uint16(l), keyMetaArgs)
+	keyShares, keyMeta, err := NewKey(keyTestSize, uint16(k), uint16(l), keyMetaArgs)
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
@@ -122,7 +121,7 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 
 	var i uint16
 	for i = 0; i < l; i++ {
-		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, keyTestHashType, keyMeta)
+		sigShares[i], err = keyShares[i].Sign(docPKCS1, keyTestHashType, keyMeta)
 		if err != nil {
 			t.Errorf(fmt.Sprintf("%v", err))
 		}
@@ -155,7 +154,7 @@ func Example() {
 	l := uint16(5)
 
 	// Generate keys provides to us with a list of keyShares and the key metainformation.
-	keyShares, keyMeta, err := GenerateKeys(keyTestSize, uint16(k), uint16(l), &KeyMetaArgs{})
+	keyShares, keyMeta, err := NewKey(keyTestSize, uint16(k), uint16(l), &KeyMetaArgs{})
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
@@ -172,7 +171,7 @@ func Example() {
 
 	// Now we sign with at least k nodes and check immediately the signature share for consistency.
 	for i = 0; i < k; i++ {
-		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, crypto.SHA256, keyMeta)
+		sigShares[i], err = keyShares[i].Sign(docPKCS1, crypto.SHA256, keyMeta)
 		if err != nil {
 			panic(fmt.Sprintf("%v", err))
 		}

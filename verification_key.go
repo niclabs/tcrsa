@@ -3,9 +3,9 @@ package tcrsa
 // VerificationKey represents the data that is needed to verify a Key Share.
 // It groups all the verification values for all the nodes in I property.
 type VerificationKey struct {
-	V []byte
-	U []byte
-	I [][]byte
+	V []byte // Verification value.
+	U []byte // Verification value.
+	I [][]byte // An array of the verification values for the shares the nodes create when sign a document.
 }
 
 // NewVerificationKey generates an empty Verification Key structure, allocating
