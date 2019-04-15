@@ -1,3 +1,5 @@
+// This library implements the cryptographic algorithms of Victor Shoup's paper Practical Threshold Signatures, in the Golang programming language.
+// You can find the paper defining the algorithms in http://www.iacr.org/archive/eurocrypt2000/1807/18070209-new.pdf.
 package tcrsa
 
 import (
