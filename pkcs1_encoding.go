@@ -1,4 +1,4 @@
-package main
+package tcrsa
 
 import (
 	"crypto"
@@ -28,7 +28,7 @@ var hashPrefixes = map[crypto.Hash][]byte{
 	crypto.RIPEMD160: {0x30, 0x20, 0x30, 0x08, 0x06, 0x06, 0x28, 0xcf, 0x06, 0x03, 0x00, 0x31, 0x04, 0x14},
 }
 
-// Returns hash info needed to encode a string hash in PKCS v1.5 format.
+// Returns hash info needed to encode a string hash in PKCS v1.15 format.
 // This method was copied from SignPKCS15 function from crypto/rsa on https://golang.org/pkg/crypto/rsa/
 func pkcs1v15HashInfo(hash crypto.Hash, inLen int) (hashLen int, prefix []byte, err error) {
 	// Special case: crypto.Hash(0) is used to indicate that the data is
@@ -47,7 +47,7 @@ func pkcs1v15HashInfo(hash crypto.Hash, inLen int) (hashLen int, prefix []byte, 
 	return
 }
 
-// PrepareDocumentHash receives a document hash and encodes it in PKCS v1.5 for its signing.
+// PrepareDocumentHash receives a document hash and encodes it in PKCS v1.15 for its signing.
 // This method was copied from SignPKCS15 function from crypto/rsa on https://golang.org/pkg/crypto/rsa/
 func PrepareDocumentHash(privateKeySize int, hashType crypto.Hash, digest []byte) ([]byte, error) {
 	hashLen, prefix, err := pkcs1v15HashInfo(hashType, len(digest))

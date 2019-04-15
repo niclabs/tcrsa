@@ -1,3 +1,3 @@
-module libtc-rsa
+module tcrsa
 
 go 1.12

@@ -1,6 +1,6 @@
-# Threshold Cryptography - RSA implementation 
+# Golang Threshold Cryptography Library - RSA implementation 
 
-[![Build Status](https://travis-ci.org/niclabs/libtc-rsa.svg?branch=master)](https://travis-ci.org/niclabs/libtc-rsa) [![GoDoc](https://godoc.org/github.com/niclabs/libtc-rsa?status.svg)](https://godoc.org/github.com/niclabs/libtc-rsa)
+[![Build Status](https://travis-ci.org/niclabs/tcrsa.svg?branch=master)](https://travis-ci.org/niclabs/tcrsa) [![GoDoc](https://godoc.org/github.com/niclabs/libtc-rsa?status.svg)](https://godoc.org/github.com/niclabs/tcrsa)
 
 This library implements the cryptographic algorithms of Victor Shoup's paper [Practical Threshold Signatures] in the Golang programming language. 
 
@@ -13,7 +13,7 @@ Due to Golang extensive standard library, this implementation does not have exte
 ### Installing
 
 ```shell
-go get https://github.com/niclabs/libtc-rsa
+go get https://github.com/niclabs/tcrsa
 ```
 
 To run the tests you just need to use `go test`:

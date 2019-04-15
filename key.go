@@ -1,4 +1,4 @@
-package main
+package tcrsa
 
 import (
 	"crypto/rsa"
@@ -116,7 +116,6 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 	d.ModInverse(e, m)
 
 	// generate v
-
 	if args.R == nil {
 		for divisor.Cmp(big.NewInt(1)) != 0 {
 			r, err = randomDev(n.BitLen())
@@ -134,7 +133,6 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 	keyMeta.VerificationKey.V = vkv.Bytes()
 
 	// generate u
-
 	if args.U == nil {
 		for cond := true; cond; cond = big.Jacobi(vku, n) != -1 {
 			vku, err = randomDev(n.BitLen())
@@ -153,7 +151,6 @@ func GenerateKeys(bitSize int, k, l uint16, args *KeyMetaArgs) (keyShares KeySha
 	deltaInv.MulRange(1, int64(l)).ModInverse(deltaInv, m)
 
 	// Generate polynomial with random coefficients.
-
 	var poly polynomial
 
 	if !args.FixedPoly {

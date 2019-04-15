@@ -1,4 +1,4 @@
-package main
+package tcrsa
 
 // VerificationKey represents the data that is needed to verify a Key Share.
 // It groups all the verification values for all the nodes in I property.

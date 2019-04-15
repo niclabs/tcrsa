@@ -1,4 +1,4 @@
-package main
+package tcrsa
 
 import (
 	"crypto"
@@ -19,6 +19,8 @@ const keyTestFixedQ = "f8PooDmAlOUFf3BdAxPCOy8p5ArfLHs6ODFWTFnpUxM="
 const keyTestFixedR = "UfF0MWqXf+K4GjmcWhxdK3CH/XVsDxm8r+CqBenL7TfdWNAD4rpUMIHzhqb0WV6KAAJfGEBlHyj1JH2rr9LiUA=="
 const keyTestFixedU = "CpJe+VzsAI3FcPioeMXklkxFFb+M9MaN1VzuScOs+7bwvczarYABZhyjPFC8McXCFAJIvaKTZwTlpylwJPumZw=="
 const keyTestHashType = crypto.SHA256
+const keyTestSize = 512
+const keyTestMessage = "Hello world"
 
 func TestGenerateKeys_differentKeys(t *testing.T) {
 	keyShares, _, err := GenerateKeys(keyTestBitLen, keyTestK, keyTestL, &KeyMetaArgs{})
@@ -38,25 +40,16 @@ func TestGenerateKeys_differentKeys(t *testing.T) {
 }
 
 func TestGenerateKeys_validRandom(t *testing.T) {
-	// check that k and l are less than 2^16-1
-	if kLong >= 1<<16-1 || kLong <= 0 {
-		t.Errorf("k should be between 1 and 65535")
-	}
-
-	if lLong >= 1<<16-1 || lLong <= 0 {
-		t.Errorf("l should be between 1 and 65535")
-	}
-
-	k := uint16(kLong)
-	l := uint16(lLong)
+	k := uint16(keyTestK)
+	l := uint16(keyTestL)
 
 	keyMetaArgs := &KeyMetaArgs{}
 
-	keyShares, keyMeta, err := GenerateKeys(s, uint16(k), uint16(l), keyMetaArgs)
+	keyShares, keyMeta, err := GenerateKeys(keyTestSize, uint16(k), uint16(l), keyMetaArgs)
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
-	docHash := sha256.Sum256([]byte(m))
+	docHash := sha256.Sum256([]byte(keyTestMessage))
 
 	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), keyTestHashType, docHash[:])
 	if err != nil {
@@ -72,7 +65,7 @@ func TestGenerateKeys_validRandom(t *testing.T) {
 			t.Errorf(fmt.Sprintf("%v", err))
 		}
 		if err := sigShares[i].Verify(docPKCS1, keyMeta); err != nil {
-			panic(fmt.Sprintf("%v", err))
+			t.Errorf(fmt.Sprintf("%v", err))
 		}
 	}
 	signature, err := sigShares.Join(docPKCS1, keyMeta)
@@ -88,17 +81,8 @@ func TestGenerateKeys_validRandom(t *testing.T) {
 
 func TestGenerateKeys_validFixed(t *testing.T) {
 
-	if kLong >= 1<<16-1 || kLong <= 0 {
-		t.Errorf("k should be between 1 and 65535")
-	}
-
-	if lLong >= 1<<16-1 || lLong <= 0 {
-		t.Errorf("l should be between 1 and 65535")
-	}
-
-	k := uint16(kLong)
-	l := uint16(lLong)
-
+	k := uint16(keyTestK)
+	l := uint16(keyTestL)
 	keyMetaArgs := &KeyMetaArgs{}
 
 	pBig, err := base64.StdEncoding.DecodeString(keyTestFixedP)
@@ -123,11 +107,11 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 	keyMetaArgs.U = new(big.Int).SetBytes(vkuBig)
 	keyMetaArgs.FixedPoly = true
 
-	keyShares, keyMeta, err := GenerateKeys(s, uint16(k), uint16(l), keyMetaArgs)
+	keyShares, keyMeta, err := GenerateKeys(keyTestSize, uint16(k), uint16(l), keyMetaArgs)
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
-	docHash := sha256.Sum256([]byte(m))
+	docHash := sha256.Sum256([]byte(keyTestMessage))
 
 	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), keyTestHashType, docHash[:])
 	if err != nil {
@@ -143,7 +127,7 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 			t.Errorf(fmt.Sprintf("%v", err))
 		}
 		if err := sigShares[i].Verify(docPKCS1, keyMeta); err != nil {
-			panic(fmt.Sprintf("%v", err))
+			t.Errorf(fmt.Sprintf("%v", err))
 		}
 	}
 	signature, err := sigShares.Join(docPKCS1, keyMeta)
@@ -162,4 +146,49 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 
+}
+
+func Example() {
+
+	// First we need to get the values of K and L from somewhere.
+	k := uint16(3)
+	l := uint16(5)
+
+	// Generate keys provides to us with a list of keyShares and the key metainformation.
+	keyShares, keyMeta, err := GenerateKeys(keyTestSize, uint16(k), uint16(l), &KeyMetaArgs{})
+	if err != nil {
+		panic(fmt.Sprintf("%v", err))
+	}
+
+	// Then we need to prepare the document we want to sign, so we hash it and pad it using PKCS v1.15.
+	docHash := sha256.Sum256([]byte(keyTestMessage))
+	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), crypto.SHA256, docHash[:])
+	if err != nil {
+		panic(fmt.Sprintf("%v", err))
+	}
+
+	sigShares := make(SigShareList, l)
+	var i uint16
+
+	// Now we sign with at least k nodes and check immediately the signature share for consistency.
+	for i = 0; i < k; i++ {
+		sigShares[i], err = keyShares[i].NodeSign(docPKCS1, crypto.SHA256, keyMeta)
+		if err != nil {
+			panic(fmt.Sprintf("%v", err))
+		}
+		if err := sigShares[i].Verify(docPKCS1, keyMeta); err != nil {
+			panic(fmt.Sprintf("%v", err))
+		}
+	}
+
+	// Having all the signature shares we needed, we join them to create a real signature.
+	signature, err := sigShares.Join(docPKCS1, keyMeta)
+	if err != nil {
+		panic(fmt.Sprintf("%v", err))
+	}
+
+	// Finally we check the signature with Golang's crypto/rsa PKCSv1.15 verification routine.
+	if err := rsa.VerifyPKCS1v15(keyMeta.PublicKey, crypto.SHA256, docHash[:], signature); err != nil {
+		panic(fmt.Sprintf("%v", err))
+	}
 }
