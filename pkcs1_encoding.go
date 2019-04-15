@@ -2,11 +2,8 @@ package main
 
 import (
 	"crypto"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
-	"math/big"
 )
 
 // This section is copied almost literally from the golang crypto/rsa source code
@@ -74,39 +71,5 @@ func PrepareDocumentHash(privateKeySize int, hashType crypto.Hash, digest []byte
 	}
 	copy(em[k-tLen:k-hashLen], prefix)
 	copy(em[k-hashLen:k], digest)
-
-	log.Printf("key_len: %d", privateKeySize)
-	log.Printf("digest_len: %d", len(digest))
-	log.Printf("prefix_len: %d", len(prefix))
-	log.Printf("padding_len: %d", k - tLen)
-	log.Printf("total_len: %d", len(em))
 	return em, nil
-}
-
-// Verifies a document signature
-func (s Signature) Verify(docPKCS1 []byte, info *KeyMeta) bool {
-	c := new(big.Int)
-	x := new(big.Int)
-	e := new(big.Int)
-	n := new(big.Int)
-
-	x.SetBytes(docPKCS1)
-	c.SetBytes(s)
-	e.SetUint64(uint64(info.PublicKey.E))
-	n.Set(info.PublicKey.N)
-
-	newX := new(big.Int).Exp(c, e, n)
-	resDocPKCS1 := Signature(newX.Bytes())
-
-	docB64 := base64.StdEncoding.EncodeToString(docPKCS1)
-	log.Printf("Doc is %s", docB64)
-
-	originalSigB64 := base64.StdEncoding.EncodeToString(s)
-	log.Printf("Original Sig is %s", originalSigB64)
-
-	sigB64 := base64.StdEncoding.EncodeToString(resDocPKCS1)
-	log.Printf("Decrypted Sig is %s", sigB64)
-
-	return newX.Cmp(x) == 0
-
 }

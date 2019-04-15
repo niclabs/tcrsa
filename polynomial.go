@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 type Polynomial []*big.Int
@@ -44,6 +45,23 @@ func CreateRandomPolynomial(d int, x0, m *big.Int) (Polynomial, error) {
 	return poly, nil
 }
 
+// Creates a polynomial of degree "d" with fixed coefficients for terms with degree
+// greater than 1. The coefficient of the term of degree 0 is x0 and the module of the
+// coefficients for the polynomial is m.
+func CreateFixedPolynomial(d int, x0, m *big.Int) (Polynomial, error) {
+	if m.Sign() < 0 {
+		return Polynomial{}, fmt.Errorf("m is negative")
+	}
+	poly := NewPolynomial(d)
+	poly[0].Set(x0)
+
+	for i := 1; i < len(poly); i++ {
+		rand := big.NewInt(int64(i))
+		poly[i].Mod(rand, m)
+	}
+	return poly, nil
+}
+
 // Evaluates a polynomial with Horner's method.
 func (p Polynomial) Eval(x *big.Int) *big.Int {
 	y := big.NewInt(0)
@@ -52,4 +70,12 @@ func (p Polynomial) Eval(x *big.Int) *big.Int {
 		y.Add(y,p[k])
 	}
 	return y
+}
+
+func (p Polynomial) String() string {
+	s := make([]string, len(p))
+	for i := 0; i < len(p); i++ {
+		s[i] = fmt.Sprintf("%dx^%d", p[i], i)
+	}
+	return strings.Join(s, " + ")
 }

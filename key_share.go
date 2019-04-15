@@ -49,6 +49,7 @@ func (share KeyShare) SignNode(doc []byte, info *KeyMeta) (*SignatureShare, erro
 	xi2 := new(big.Int)
 	vPrime := new(big.Int)
 	xPrime := new(big.Int)
+	exp := new(big.Int)
 
 	si := new(big.Int)
 
@@ -66,10 +67,9 @@ func (share KeyShare) SignNode(doc []byte, info *KeyMeta) (*SignatureShare, erro
 		ue := new(big.Int).Exp(u, e, n)
 		x.Mul(x, ue).Mod(x, n)
 	}
-
 	// xi = x^(2*share) mod n
-	xi.Mul(si, big.NewInt(2)).Exp(x, xi, n)
-
+	exp.Mul(si, big.NewInt(2))
+	xi.Exp(x, exp, n)
 	// x~ = x^4 % n
 	xTilde.Exp(x, big.NewInt(4), n)
 

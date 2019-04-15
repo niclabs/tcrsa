@@ -22,4 +22,7 @@ type KeyMetaArgs struct {
 	E int
 	P *big.Int
 	Q *big.Int
+	R *big.Int
+	U *big.Int
+	FixedPoly bool
 }

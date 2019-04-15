@@ -20,7 +20,4 @@ func TestPrepareDocumentHash(t *testing.T) {
 		t.Errorf("prepared hash has not the desired length")
 	}
 
-	if docHash[0] != 1 {
-		t.Errorf("prepared hash has not its first byte set to 1")
-	}
 }
