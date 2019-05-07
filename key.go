@@ -10,6 +10,7 @@ import (
 
 // Minimum bit size for the key generation: 512 bits.
 const minBitSize = 1 << 9
+
 // Maximum bit size for the key generation: 4096 bits.
 const maxBitSize = 1 << 13
 
@@ -23,6 +24,10 @@ const f4 = 65537
 // On success, it returns the meta information common to all the keys, and an array with all the key shares.
 // On failure, it returns an error and invalid pointers to shares and meta information.
 func NewKey(bitSize int, k, l uint16, args *KeyMetaArgs) (shares KeyShareList, meta *KeyMeta, err error) {
+
+	if args == nil {
+		args = &KeyMetaArgs{}
+	}
 
 	// Parameter checking
 	if bitSize < minBitSize || bitSize > maxBitSize {
@@ -55,9 +60,9 @@ func NewKey(bitSize int, k, l uint16, args *KeyMetaArgs) (shares KeyShareList, m
 	}
 
 	meta = &KeyMeta{
-		PublicKey: &rsa.PublicKey{},
-		K: k,
-		L: l,
+		PublicKey:       &rsa.PublicKey{},
+		K:               k,
+		L:               l,
 		VerificationKey: NewVerificationKey(l),
 	}
 	shares = make(KeyShareList, meta.L)

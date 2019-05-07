@@ -154,7 +154,7 @@ func Example() {
 	l := uint16(5)
 
 	// Generate keys provides to us with a list of keyShares and the key metainformation.
-	keyShares, keyMeta, err := NewKey(keyTestSize, uint16(k), uint16(l), &KeyMetaArgs{})
+	keyShares, keyMeta, err := NewKey(keyTestSize, uint16(k), uint16(l), nil)
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
