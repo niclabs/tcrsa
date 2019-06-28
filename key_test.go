@@ -1,4 +1,4 @@
-package tcrsa
+package tcrsa_test
 
 import (
 	"crypto"
@@ -6,24 +6,26 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"github.com/niclabs/tcrsa"
 	"math/big"
 	"testing"
 )
 
-const keyTestBitLen = 512
 const keyTestK = 3
 const keyTestL = 5
 
+const keyTestFixedSize = 512
 const keyTestFixedP = "132TWiSEqNNnfiF5AZjS2R8SwUszMGnHSKTYAtWckuc="
 const keyTestFixedQ = "f8PooDmAlOUFf3BdAxPCOy8p5ArfLHs6ODFWTFnpUxM="
 const keyTestFixedR = "UfF0MWqXf+K4GjmcWhxdK3CH/XVsDxm8r+CqBenL7TfdWNAD4rpUMIHzhqb0WV6KAAJfGEBlHyj1JH2rr9LiUA=="
 const keyTestFixedU = "CpJe+VzsAI3FcPioeMXklkxFFb+M9MaN1VzuScOs+7bwvczarYABZhyjPFC8McXCFAJIvaKTZwTlpylwJPumZw=="
+
 const keyTestHashType = crypto.SHA256
 const keyTestSize = 512
 const keyTestMessage = "Hello world"
 
 func TestGenerateKeys_differentKeys(t *testing.T) {
-	keyShares, _, err := NewKey(keyTestBitLen, keyTestK, keyTestL, &KeyMetaArgs{})
+	keyShares, _, err := tcrsa.NewKey(keyTestSize, keyTestK, keyTestL, &tcrsa.KeyMetaArgs{})
 	if err != nil {
 		t.Errorf("couldn't create keys")
 	}
@@ -43,20 +45,20 @@ func TestGenerateKeys_validRandom(t *testing.T) {
 	k := uint16(keyTestK)
 	l := uint16(keyTestL)
 
-	keyMetaArgs := &KeyMetaArgs{}
+	keyMetaArgs := &tcrsa.KeyMetaArgs{}
 
-	keyShares, keyMeta, err := NewKey(keyTestSize, uint16(k), uint16(l), keyMetaArgs)
+	keyShares, keyMeta, err := tcrsa.NewKey(keyTestFixedSize, uint16(k), uint16(l), keyMetaArgs)
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 	docHash := sha256.Sum256([]byte(keyTestMessage))
 
-	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), keyTestHashType, docHash[:])
+	docPKCS1, err := tcrsa.PrepareDocumentHash(keyMeta.PublicKey.Size(), keyTestHashType, docHash[:])
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 
-	sigShares := make(SigShareList, l)
+	sigShares := make(tcrsa.SigShareList, l)
 
 	var i uint16
 	for i = 0; i < l; i++ {
@@ -83,7 +85,7 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 
 	k := uint16(keyTestK)
 	l := uint16(keyTestL)
-	keyMetaArgs := &KeyMetaArgs{}
+	keyMetaArgs := &tcrsa.KeyMetaArgs{}
 
 	pBig, err := base64.StdEncoding.DecodeString(keyTestFixedP)
 	if err != nil {
@@ -106,18 +108,18 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 	keyMetaArgs.R = new(big.Int).SetBytes(rBig)
 	keyMetaArgs.U = new(big.Int).SetBytes(vkuBig)
 
-	keyShares, keyMeta, err := NewKey(keyTestSize, uint16(k), uint16(l), keyMetaArgs)
+	keyShares, keyMeta, err := tcrsa.NewKey(keyTestSize, uint16(k), uint16(l), keyMetaArgs)
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 	docHash := sha256.Sum256([]byte(keyTestMessage))
 
-	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), keyTestHashType, docHash[:])
+	docPKCS1, err := tcrsa.PrepareDocumentHash(keyMeta.PublicKey.Size(), keyTestHashType, docHash[:])
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 
-	sigShares := make(SigShareList, l)
+	sigShares := make(tcrsa.SigShareList, l)
 
 	var i uint16
 	for i = 0; i < l; i++ {
@@ -145,49 +147,4 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
 
-}
-
-func Example() {
-
-	// First we need to get the values of K and L from somewhere.
-	k := uint16(3)
-	l := uint16(5)
-
-	// Generate keys provides to us with a list of keyShares and the key metainformation.
-	keyShares, keyMeta, err := NewKey(keyTestSize, uint16(k), uint16(l), nil)
-	if err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
-
-	// Then we need to prepare the document we want to sign, so we hash it and pad it using PKCS v1.15.
-	docHash := sha256.Sum256([]byte(keyTestMessage))
-	docPKCS1, err := PrepareDocumentHash(keyMeta.PublicKey.Size(), crypto.SHA256, docHash[:])
-	if err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
-
-	sigShares := make(SigShareList, l)
-	var i uint16
-
-	// Now we sign with at least k nodes and check immediately the signature share for consistency.
-	for i = 0; i < k; i++ {
-		sigShares[i], err = keyShares[i].Sign(docPKCS1, crypto.SHA256, keyMeta)
-		if err != nil {
-			panic(fmt.Sprintf("%v", err))
-		}
-		if err := sigShares[i].Verify(docPKCS1, keyMeta); err != nil {
-			panic(fmt.Sprintf("%v", err))
-		}
-	}
-
-	// Having all the signature shares we needed, we join them to create a real signature.
-	signature, err := sigShares.Join(docPKCS1, keyMeta)
-	if err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
-
-	// Finally we check the signature with Golang's crypto/rsa PKCSv1.15 verification routine.
-	if err := rsa.VerifyPKCS1v15(keyMeta.PublicKey, crypto.SHA256, docHash[:], signature); err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
 }

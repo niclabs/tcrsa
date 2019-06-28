@@ -75,7 +75,7 @@ func (p polynomial) eval(x *big.Int) *big.Int {
 }
 
 // string returns the polynomial formatted as a string.
-func (p polynomial) string() string {
+func (p polynomial) String() string {
 	s := make([]string, len(p))
 	for i := 0; i < len(p); i++ {
 		s[i] = fmt.Sprintf("%dx^%d", p[i], i)

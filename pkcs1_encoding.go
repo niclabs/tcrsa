@@ -8,7 +8,6 @@ import (
 
 // This section is copied almost literally from the golang crypto/rsa source code
 // https://golang.org/src/crypto/rsa/pkcs1v15.go
-
 // These are ASN1 DER structures:
 //   DigestInfo ::= SEQUENCE {
 //     digestAlgorithm AlgorithmIdentifier,
