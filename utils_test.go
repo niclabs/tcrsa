@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-const utilsTestBitlen = 128
+const utilsTestBitlen = 256
 
 // Miller-Rabin primality test rounds
 const utilsTestC = 25
@@ -32,8 +32,8 @@ func TestRandomDev_bitSize(t *testing.T) {
 	if err != nil {
 		t.Errorf("first random number generation failed: %v", err)
 	}
-	if rand1.BitLen() != utilsTestBitlen {
-		t.Errorf("random number bit length should have been %d, but it was %d", rand1.BitLen(), utilsTestBitlen)
+	if rand1.BitLen() > utilsTestBitlen {
+		t.Errorf("random number bit length should have been at most %d, but it was %d", rand1.BitLen(), utilsTestBitlen)
 	}
 }
 
@@ -59,8 +59,8 @@ func TestRandomPrimes_bitSize(t *testing.T) {
 	if err != nil {
 		t.Errorf("first random prime number generation failed: %v", err)
 	}
-	if rand1.BitLen() != utilsTestBitlen {
-		t.Errorf("random number bit length should have been %d, but it was %d", rand1.BitLen(), utilsTestBitlen)
+	if rand1.BitLen() > utilsTestBitlen {
+		t.Errorf("random number bit length should have been at most %d, but it was %d", rand1.BitLen(), utilsTestBitlen)
 	}
 }
 
@@ -78,10 +78,12 @@ func TestRandomPrimes_isPrime(t *testing.T) {
 // Tests that NextPrime returns the next prime of a number greater than 2.
 func TestNextPrime(t *testing.T) {
 	number := big.NewInt(4)
+	firstNumber := big.NewInt(0)
+	firstNumber.Set(number)
 	expected := big.NewInt(5)
-	output := nextPrime(number, utilsTestC)
-	if output.Cmp(expected) != 0 {
-		t.Errorf("expecting %s as next prime of %s, but obtained %s", expected, number, output)
+	setAsNextPrime(number, utilsTestC)
+	if number.Cmp(expected) != 0 {
+		t.Errorf("expecting %s as next prime of %s, but obtained %s", expected, firstNumber, number)
 	}
 }
 
@@ -133,11 +135,14 @@ func TestGenerateSafePrimes_keyGeneration(t *testing.T) {
 
 }
 
-func BenchmarkSafePrimes(b *testing.B) {
+
+func BenchmarkSetAsPrime(b *testing.B) {
+	randFn := randomFixed(12345)
 	for i := 0; i < b.N; i++ {
-		_, _, err := generateSafePrimes(utilsTestBitlen, randomDev)
-		if err != nil {
-			b.Errorf("safe prime generation failed: %v", err)
+		randPrime := big.NewInt(0)
+		for randPrime.BitLen() == 0 || randPrime.BitLen() > utilsTestBitlen {
+			randPrime, _ = randFn(utilsTestBitlen)
+			setAsNextPrime(randPrime, c)
 		}
 	}
 }

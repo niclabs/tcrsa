@@ -47,7 +47,7 @@ func TestGenerateKeys_validRandom(t *testing.T) {
 
 	keyMetaArgs := &tcrsa.KeyMetaArgs{}
 
-	keyShares, keyMeta, err := tcrsa.NewKey(keyTestFixedSize, uint16(k), uint16(l), keyMetaArgs)
+	keyShares, keyMeta, err := tcrsa.NewKey(keyTestSize, uint16(k), uint16(l), keyMetaArgs)
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}
@@ -108,7 +108,7 @@ func TestGenerateKeys_validFixed(t *testing.T) {
 	keyMetaArgs.R = new(big.Int).SetBytes(rBig)
 	keyMetaArgs.U = new(big.Int).SetBytes(vkuBig)
 
-	keyShares, keyMeta, err := tcrsa.NewKey(keyTestSize, uint16(k), uint16(l), keyMetaArgs)
+	keyShares, keyMeta, err := tcrsa.NewKey(keyTestFixedSize, uint16(k), uint16(l), keyMetaArgs)
 	if err != nil {
 		t.Errorf(fmt.Sprintf("%v", err))
 	}

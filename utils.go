@@ -2,6 +2,7 @@ package tcrsa
 
 import (
 	"crypto/rand"
+	mathRand "math/rand"
 	"fmt"
 	"math/big"
 )
@@ -18,35 +19,65 @@ func randomDev(bitLen int) (randNum *big.Int, err error) {
 		return
 	}
 	byteLen := bitLen / 8
-	byteRem := bitLen % 8
-	if byteRem != 0 {
+	if bitLen % 8 != 0 {
 		byteLen++
 	}
 	rawRand := make([]byte, byteLen)
 
-	for randNum.BitLen() != bitLen {
+	for randNum.BitLen() == 0 || randNum.BitLen() > bitLen {
 		_, err = rand.Read(rawRand)
 		if err != nil {
 			return
 		}
 		randNum.SetBytes(rawRand)
 		// set MSBs to 0 to get a bitLen equal to bitLen param.
-		var bit int
-		for bit = randNum.BitLen() - 1; bit >= bitLen; bit-- {
+		for bit := bitLen; bit < randNum.BitLen(); bit++ {
 			randNum.SetBit(randNum, bit, 0)
 		}
-		// Set bit number (bitLen-1) to 1
-		randNum.SetBit(randNum, bit, 1)
 	}
 
-	if randNum.BitLen() != bitLen {
-		err = fmt.Errorf("random number returned should have length %d, but its length is %d", bitLen, randNum.BitLen())
+	if randNum.BitLen() == 0 || randNum.BitLen() > bitLen {
+		err = fmt.Errorf("random number returned should have length at most %d, but its length is %d", bitLen, randNum.BitLen())
 		return
 	}
 	return
 }
 
-// randomPrime a random prime of length bitLen, using a given random function randFn.
+// randomFixed returns a seeded pseudorandom function that returns a random number of bitLen bits.
+func randomFixed(seed int64) func(int) (*big.Int, error) {
+	seededRand := mathRand.New(mathRand.NewSource(seed))
+	return func(bitLen int) (randNum *big.Int, err error) {
+		randNum = big.NewInt(0)
+		if bitLen <= 0 {
+			err = fmt.Errorf("bitlen should be greater than 0, but it is %d", bitLen)
+			return
+		}
+		byteLen := bitLen / 8
+		if bitLen % 8 != 0 {
+			byteLen++
+		}
+		rawRand := make([]byte, byteLen)
+		for randNum.BitLen() == 0 || randNum.BitLen() > bitLen {
+			_, err = seededRand.Read(rawRand)
+			if err != nil {
+				return
+			}
+			randNum.SetBytes(rawRand)
+			// set MSBs to 0 to get a bitLen equal to bitLen param.
+			for bit := bitLen; bit < randNum.BitLen(); bit++ {
+				randNum.SetBit(randNum, bit, 0)
+			}
+		}
+
+		if randNum.BitLen() == 0 || randNum.BitLen() > bitLen {
+			err = fmt.Errorf("random number returned should have length at most %d, but its length is %d", bitLen, randNum.BitLen())
+			return
+		}
+		return
+	}
+}
+
+// randomPrime returns a random prime of length bitLen, using a given random function randFn.
 func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (randPrime *big.Int, err error) {
 	randPrime = new(big.Int)
 
@@ -59,16 +90,16 @@ func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (randPrime *big
 		return
 	}
 
-	for randPrime.BitLen() != bitLen {
+	for randPrime.BitLen() == 0 || randPrime.BitLen() > bitLen {
 		randPrime, err = randFn(bitLen)
 		if err != nil {
 			return
 		}
-		randPrime = nextPrime(randPrime, c)
+		setAsNextPrime(randPrime, c)
 	}
 
-	if randPrime.BitLen() != bitLen {
-		err = fmt.Errorf("random number returned should have length %d, but its length is %d", bitLen, randPrime.BitLen())
+	if randPrime.BitLen() == 0 || randPrime.BitLen() > bitLen {
+		err = fmt.Errorf("random number returned should have length at most %d, but its length is %d", bitLen, randPrime.BitLen())
 		return
 	}
 
@@ -79,16 +110,16 @@ func randomPrime(bitLen int, randFn func(int) (*big.Int, error)) (randPrime *big
 	return
 }
 
-// nextPrime returns the next prime number based on a specific number, checking for its prime condition
+// setAsNextPrime edits the number as the next prime number from it, checking for its prime condition
 // using ProbablyPrime function.
-func nextPrime(num *big.Int, n int) *big.Int {
+func setAsNextPrime(num *big.Int, n int) {
 	// Possible prime should be odd
 	num.SetBit(num, 0, 1)
+	two := big.NewInt(2)
 	for !num.ProbablyPrime(n) {
 		// I add two to the number to obtain another odd number
-		num.Add(num, big.NewInt(2))
+		num.Add(num, two)
 	}
-	return num
 }
 
 // generateSafePrimes generates two primes p and q, in a way that q
@@ -101,20 +132,28 @@ func generateSafePrimes(bitLen int, randFn func(int) (*big.Int, error)) (*big.In
 	q := new(big.Int)
 	r := new(big.Int)
 
-	for true {
+	for {
 		p, err := randomPrime(bitLen, randFn)
 		if err != nil {
 			return big.NewInt(0), big.NewInt(0), err
 		}
-		q.Sub(p, big.NewInt(1)).Div(q, big.NewInt(2))
-		r.Mul(p, big.NewInt(2)).Add(r, big.NewInt(1))
 
-		if q.ProbablyPrime(c) {
-			return p, q, nil
+		// If the number will be odd after right shift
+		if p.Bit(1) == 1 {
+			// q = (p - 1) / 2
+			q.Rsh(p, 1)
+			if q.ProbablyPrime(c) {
+				return p, q, nil
+			}
 		}
-		if r.ProbablyPrime(c) {
-			return r, p, nil
+
+		if p.BitLen() < bitLen {
+			// r = 2p + 1
+			r.Lsh(p, 1)
+			r.SetBit(r,0,1)
+			if r.ProbablyPrime(c) {
+				return r, p, nil
+			}
 		}
 	}
-	return big.NewInt(0), big.NewInt(0), fmt.Errorf("should never be here")
 }
