@@ -1,8 +1,11 @@
 package tcrsa
 
 import (
+	"crypto/rand"
+	"fmt"
 	"math/big"
 	"testing"
+	"time"
 )
 
 const utilsTestBitlen = 256
@@ -13,11 +16,11 @@ const utilsTestC = 25
 // Tests that two consecutive outputs from random dev are different.
 // TODO: Test how much different are the numbers generated
 func TestRandomDev_different(t *testing.T) {
-	rand1, err := randomDev(utilsTestBitlen)
+	rand1, err := randInt(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("first random number generation failed: %v", err)
 	}
-	rand2, err := randomDev(utilsTestBitlen)
+	rand2, err := randInt(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("second random number generation failed: %v", err)
 	}
@@ -28,7 +31,7 @@ func TestRandomDev_different(t *testing.T) {
 
 // Tests that the bit size of the output of a random dev function is the desired.
 func TestRandomDev_bitSize(t *testing.T) {
-	rand1, err := randomDev(utilsTestBitlen)
+	rand1, err := randInt(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("first random number generation failed: %v", err)
 	}
@@ -37,61 +40,11 @@ func TestRandomDev_bitSize(t *testing.T) {
 	}
 }
 
-// Tests that two consecutive random primes are different.
-// TODO: Test how much different are the numbers generated
-func TestRandomPrimes_different(t *testing.T) {
-	rand1, err := randomPrime(utilsTestBitlen, randomDev)
-	if err != nil {
-		t.Errorf("first random prime number generation failed: %v", err)
-	}
-	rand2, err := randomPrime(utilsTestBitlen, randomDev)
-	if err != nil {
-		t.Errorf("second random prime number generation failed: %v", err)
-	}
-	if rand1.Cmp(rand2) == 0 {
-		t.Errorf("both random numbers are equal!")
-	}
-}
-
-// Tests that the output size of a random prime function is the desired.
-func TestRandomPrimes_bitSize(t *testing.T) {
-	rand1, err := randomPrime(utilsTestBitlen, randomDev)
-	if err != nil {
-		t.Errorf("first random prime number generation failed: %v", err)
-	}
-	if rand1.BitLen() > utilsTestBitlen {
-		t.Errorf("random number bit length should have been at most %d, but it was %d", rand1.BitLen(), utilsTestBitlen)
-	}
-}
-
-// Tests that the output of RandomPrimes is a prime.
-func TestRandomPrimes_isPrime(t *testing.T) {
-	rand1, err := randomPrime(utilsTestBitlen, randomDev)
-	if err != nil {
-		t.Errorf("first random prime number generation failed: %v", err)
-	}
-	if !rand1.ProbablyPrime(utilsTestC) {
-		t.Errorf("random number is not prime")
-	}
-}
-
-// Tests that NextPrime returns the next prime of a number greater than 2.
-func TestNextPrime(t *testing.T) {
-	number := big.NewInt(4)
-	firstNumber := big.NewInt(0)
-	firstNumber.Set(number)
-	expected := big.NewInt(5)
-	setAsNextPrime(number, utilsTestC)
-	if number.Cmp(expected) != 0 {
-		t.Errorf("expecting %s as next prime of %s, but obtained %s", expected, firstNumber, number)
-	}
-}
-
 func TestGenerateSafePrimes(t *testing.T) {
 
 	pExpected := new(big.Int)
 
-	p, pr, err := generateSafePrimes(utilsTestBitlen, randomDev)
+	p, pr, err := generateSafePrimes(utilsTestBitlen, rand.Reader)
 	if err != nil {
 		t.Errorf("safe prime generation failed: %v", err)
 	}
@@ -113,12 +66,12 @@ func TestGenerateSafePrimes_keyGeneration(t *testing.T) {
 	d := new(big.Int)
 	r := new(big.Int)
 
-	_, pr, err := generateSafePrimes(utilsTestBitlen, randomDev)
+	_, pr, err := generateSafePrimes(utilsTestBitlen, rand.Reader)
 	if err != nil {
 		t.Errorf("safe prime generation failed: %v", err)
 	}
 
-	_, qr, err := generateSafePrimes(utilsTestBitlen, randomDev)
+	_, qr, err := generateSafePrimes(utilsTestBitlen, rand.Reader)
 	if err != nil {
 		t.Errorf("safe prime generation failed: %v", err)
 	}
@@ -135,14 +88,14 @@ func TestGenerateSafePrimes_keyGeneration(t *testing.T) {
 
 }
 
-
-func BenchmarkSetAsPrime(b *testing.B) {
-	randFn := randomFixed(12345)
-	for i := 0; i < b.N; i++ {
-		randPrime := big.NewInt(0)
-		for randPrime.BitLen() == 0 || randPrime.BitLen() > utilsTestBitlen {
-			randPrime, _ = randFn(utilsTestBitlen)
-			setAsNextPrime(randPrime, c)
+func TestGenerateSafePrimes_Time(t *testing.T) {
+	for i := 4; i <11; i++ {
+		keyLength := 1 << uint(i)
+		start := time.Now()
+		_, _, err := generateSafePrimes(keyLength, rand.Reader)
+		if err != nil {
+			t.Errorf("error generating safe primes: %d", err)
 		}
+		fmt.Printf("- %d byte safe prime pair obtained in %f seconds\n", keyLength, time.Since(start).Seconds())
 	}
 }

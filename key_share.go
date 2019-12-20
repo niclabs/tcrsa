@@ -76,7 +76,7 @@ func (keyShare KeyShare) Sign(doc []byte, hashType crypto.Hash, info *KeyMeta) (
 	xi2.Exp(xi, big.NewInt(2), n)
 
 	// r = abs(random(bytes_len))
-	r, err := randomDev(n.BitLen() + 2*hashType.Size()*8)
+	r, err := randInt(n.BitLen() + 2*hashType.Size()*8)
 	if err != nil {
 		return
 	}

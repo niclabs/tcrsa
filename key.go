@@ -3,6 +3,7 @@
 package tcrsa
 
 import (
+	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
 	"math/big"
@@ -97,7 +98,7 @@ func NewKey(bitSize int, k, l uint16, args *KeyMetaArgs) (shares KeyShareList, m
 		p.Set(args.P)
 		pr.Sub(p, big.NewInt(1)).Div(pr, big.NewInt(2))
 	} else {
-		if p, pr, err = generateSafePrimes(pPrimeSize, randomDev); err != nil {
+		if p, pr, err = generateSafePrimes(pPrimeSize, rand.Reader); err != nil {
 			return
 		}
 	}
@@ -110,7 +111,7 @@ func NewKey(bitSize int, k, l uint16, args *KeyMetaArgs) (shares KeyShareList, m
 		q.Set(args.Q)
 		qr.Sub(q, big.NewInt(1)).Div(qr, big.NewInt(2))
 	} else {
-		if q, qr, err = generateSafePrimes(qPrimeSize, randomDev); err != nil {
+		if q, qr, err = generateSafePrimes(qPrimeSize, rand.Reader); err != nil {
 			return
 		}
 	}
@@ -143,7 +144,7 @@ func NewKey(bitSize int, k, l uint16, args *KeyMetaArgs) (shares KeyShareList, m
 	// generate v
 	if args.R == nil {
 		for divisor.Cmp(big.NewInt(1)) != 0 {
-			r, err = randomDev(n.BitLen())
+			r, err = randInt(n.BitLen())
 			if err != nil {
 				return
 			}
@@ -165,7 +166,7 @@ func NewKey(bitSize int, k, l uint16, args *KeyMetaArgs) (shares KeyShareList, m
 	// generate u
 	if args.U == nil {
 		for cond := true; cond; cond = big.Jacobi(vku, n) != -1 {
-			vku, err = randomDev(n.BitLen())
+			vku, err = randInt(n.BitLen())
 			if err != nil {
 				return
 			}
