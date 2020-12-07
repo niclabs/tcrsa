@@ -11,8 +11,8 @@ type SigShareList []*SigShare
 // Join generates a standard RSA signature using the signature shares of the document provided.
 // The number of signatures should be at least the number of threshold defined at key creation.
 // It returns the RSA signature generated, or an error if the process fails.
-func (sigShareList SigShareList) Join(document []byte, info *KeyMeta) (sig Signature, err error) {
-
+func (sigShareList SigShareList) Join(document []byte, info *KeyMeta) (signature Signature, err error) {
+	signature = make([]byte, info.PublicKey.Size())
 	if document == nil {
 		err = fmt.Errorf("document is nil")
 		return
@@ -103,16 +103,17 @@ func (sigShareList SigShareList) Join(document []byte, info *KeyMeta) (sig Signa
 	}
 
 	y.Mod(y, n)
-	sig = y.Bytes()
+	sig := y.Bytes()
+	// Pads sig with zeros until pk size
+	copy(signature[len(signature)-len(sig):], sig)
 	return
-
 }
 
 // This function generates the lagrange interpolation for a set of signature shares.
 func (sigShareList SigShareList) lagrangeInterpolation(j, k int64, delta *big.Int) (*big.Int, error) {
 
 	if int64(len(sigShareList)) < k {
-		return new(big.Int), fmt.Errorf("insuficient number of signature shares. provided: %d, needed: %d", len(sigShareList), k)
+		return new(big.Int), fmt.Errorf("signature shares are not enough. provided=%d, needed=%d", len(sigShareList), k)
 	}
 	out := new(big.Int)
 
