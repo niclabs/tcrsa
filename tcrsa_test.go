@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/niclabs/tcrsa"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 const exampleK = 3
@@ -59,4 +61,34 @@ func Example() {
 	}
 	fmt.Println("ok")
 	// Output: ok
+}
+
+func TestKeyShare_Sign_PssDoc(t *testing.T) {
+	k := uint16(3)
+	l := uint16(5)
+	bitSize := 1024
+
+	keyShares, keyMeta, err := tcrsa.NewKey(bitSize, k, l, nil)
+	assert.NoError(t, err)
+
+	data := []byte("this is a test data 111")
+	docHash := sha256.Sum256(data)
+	docPSS, err := tcrsa.PreparePssDocumentHash(keyMeta.PublicKey.N.BitLen(), crypto.SHA256, docHash[:], nil)
+	assert.NoError(t, err)
+	sigShares := make(tcrsa.SigShareList, l)
+
+	var i uint16
+
+	for i = 0; i < l; i++ {
+		sigShares[i], err = keyShares[i].Sign(docPSS, crypto.SHA256, keyMeta)
+		assert.NoError(t, err)
+		err = sigShares[i].Verify(docPSS, keyMeta)
+		assert.NoError(t, err)
+	}
+
+	signature, err := sigShares.Join(docPSS, keyMeta)
+	assert.NoError(t, err)
+
+	err = rsa.VerifyPSS(keyMeta.PublicKey, crypto.SHA256, docHash[:], signature, nil)
+	assert.NoError(t, err)
 }

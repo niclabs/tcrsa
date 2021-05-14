@@ -1,9 +1,9 @@
-package tcrsa_test
+package tcrsa
 
 import (
 	"crypto"
 	"crypto/sha256"
-	"github.com/niclabs/tcrsa"
+
 	"testing"
 )
 
@@ -12,7 +12,7 @@ const pkcs1EncodingLeyLength = 64
 
 func TestPrepareDocumentHash(t *testing.T) {
 	docHash := sha256.Sum256([]byte(pkcs1EncodingTestMessage))
-	docPKCS1, err := tcrsa.PrepareDocumentHash(pkcs1EncodingLeyLength, crypto.SHA256, docHash[:])
+	docPKCS1, err := PrepareDocumentHash(pkcs1EncodingLeyLength, crypto.SHA256, docHash[:])
 	if err != nil {
 		t.Errorf("couldn't prepare document hash: %v", err)
 	}
