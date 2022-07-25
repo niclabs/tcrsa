@@ -12,7 +12,7 @@ Due to Golang extensive standard library, this implementation does not have exte
 ### Installing
 
 ```shell
-go get https://github.com/niclabs/tcrsa
+go get github.com/niclabs/tcrsa
 ```
 
 To run the tests you just need to use `go test`:
